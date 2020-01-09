@@ -34,6 +34,8 @@ all_test() ->
   % read
   ?assertEqual({error, instance}, ch3_ex4:read(ola, Db3)),
 
+  ?assertEqual({ok, [london]}, ch3_ex4:read(francesco, Db3)),
+
   % match
   ?assertEqual([joern, lelle], ch3_ex4:match(stockholm, Db3)),
 
