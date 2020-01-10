@@ -25,5 +25,14 @@ concatenate([]) -> [];
 concatenate([H|T]) ->
   H ++ concatenate(T).
 
-%%%% flattens a list of Nd lists to a 1d list
-%%flatten(L) -> L.
+concat(L) ->
+  concat(L, L, []).
+
+concat([], [], Acc) -> reverse(Acc);
+concat([], [H|T], Acc) ->
+  concat(H, T, Acc);
+concat([H|T], Ml, Acc) ->
+  case is_list(H) of
+    true -> concat(H, T, Acc);
+    _ -> concat(T, Ml, [H|Acc])
+  end.
