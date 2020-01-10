@@ -21,7 +21,9 @@ reverse([H|T], Acc) ->
   reverse(T, [H|Acc]).
 
 %% concatenates a list of 1d lists to a single 1d list
-concatenate(L) -> L.
+concatenate([]) -> [];
+concatenate([H|T]) ->
+  H ++ concatenate(T).
 
-%% flattens a list of Nd lists to a 1d list
-flatten(L) -> L.
+%%%% flattens a list of Nd lists to a 1d list
+%%flatten(L) -> L.
