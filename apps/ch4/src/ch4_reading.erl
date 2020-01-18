@@ -11,6 +11,8 @@
 -compile(export_all).
 -export([]).
 
+-include_lib("book2/include/macros.hrl").
+
 -define(TIMEOUT, 1000).
 
 echo(Msg) ->
@@ -64,6 +66,50 @@ sleep() ->
         "sleep time=~p~n", [Time])
   end.
 
-%% TODO: transfer func that uses 3 Pids and tranfers a Msg
 %% from Pid1 -> Pid2 -> Pid3
 %% and Pid3 will respond to Pid1
+transfer(Msg) ->
+  % this Pid is Pid1!
+  Self = self(),
+  ?DEBUG({start, Self}),
+
+  % spawns
+  Pid2 = spawn(?MODULE, forward_loop, [Self]),
+  ?DEBUG({forward_loop, Pid2}),
+
+  Pid3 = spawn(?MODULE, forward_loop, [Self]),
+  ?DEBUG({forward_loop_2, Pid3}),
+
+  ?DEBUG({pid1, Self}),
+  ?DEBUG({pid2, Pid2}),
+  ?DEBUG({pid3, Pid3}),
+
+  % 1st forward includes the Pid to forward to
+  Pid2 ! {forward, Pid3, Msg},
+  ?DEBUG(first_msg_sent),
+
+  % Self receives forwarded message back from Pid3
+  log_loop().
+
+log_loop() ->
+  receive
+    Msg -> Msg
+  after ?TIMEOUT ->
+    log_loop_timeout
+  end.
+
+forward_loop(Pid0) ->
+  receive
+    {forward, Pid, Msg} = Ctx ->
+      ?DEBUG({Ctx, self()}),
+      % 2nd forward doesn't include a Pid to forward to
+      Pid ! {forward, Msg},
+      forward_loop(Pid0);
+    {forward, Msg} = Ctx2 ->
+      ?DEBUG({Ctx2, self(), Pid0}),
+      % Final Msg is sent back to Self
+      Pid0 ! Msg,
+      forward_loop(Pid0)
+  after
+    ?TIMEOUT -> forward_loop_timeout
+  end.
