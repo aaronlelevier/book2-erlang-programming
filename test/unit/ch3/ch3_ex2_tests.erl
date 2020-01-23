@@ -9,7 +9,7 @@
 -module(ch3_ex2_tests).
 -author("aaron lelevier").
 -compile(export_all).
-
+-compile(nowarn_export_all).
 -include_lib("eunit/include/eunit.hrl").
 
 simple_test() ->
