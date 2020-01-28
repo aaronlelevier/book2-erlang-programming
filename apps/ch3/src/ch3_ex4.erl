@@ -9,6 +9,7 @@
 -module(ch3_ex4).
 -author("aaron lelevier").
 -compile(export_all).
+-compile(nowarn_export_all).
 -include_lib("book2/include/macros.hrl").
 
 %% Types
