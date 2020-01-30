@@ -5,3 +5,5 @@
 -else.
 -define(DEBUG(X), void).
 -endif.
+
+-define(LOG(X), io:format("DEBUG ~p:~p ~p~n",[?MODULE, ?LINE, X])).

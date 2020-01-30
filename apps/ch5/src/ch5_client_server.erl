@@ -8,6 +8,9 @@
 %%%-------------------------------------------------------------------
 -module(ch5_client_server).
 -author("aaron lelevier").
+-include_lib("book2/include/macros.hrl").
+
+%% exports
 -export([start/0, stop/0, allocate/0, deallocate/1]).
 -export([init/0]).
 %% extra
@@ -16,6 +19,11 @@
 %% Macros
 -define(SERVER, frequency).
 -define(TIMEOUT, 1000).
+-define(FREQUENCIES, [1, 2]).
+
+-type frequency() :: integer().
+-type frequencies() :: {[frequency()], [frequency()]}.
+-type reply() :: ok | {ok, frequency()} | {error, no_frequencies}.
 
 %% Client functions
 
@@ -34,12 +42,18 @@ server_name() -> ?SERVER.
 
 %% Internal API
 
+%% @doc frequencies are initialized as a tuple where the
+% first item is the list of free frequencies, and the 2nd
+% item is a list of allocated frequencies
 init() ->
-  Frequencies = {get_frequencies(), []},
+  Frequencies = get_frequencies(),
   loop(Frequencies).
 
-get_frequencies() -> [10, 11, 12].
+-spec get_frequencies() -> frequencies().
+get_frequencies() ->
+  {?FREQUENCIES, []}.
 
+-spec call(any()) -> any().
 call(Message) ->
   ?SERVER ! {request, self(), Message},
   receive
@@ -49,6 +63,7 @@ call(Message) ->
     call_timeout
   end.
 
+-spec loop(frequencies()) -> any().
 loop(Frequencies) ->
   receive
     {request, Pid, allocate} ->
@@ -57,15 +72,24 @@ loop(Frequencies) ->
       loop(NewFrequencies);
     {request, Pid, {deallocate, Freq}} ->
       {NewFrequencies, Reply} = deallocate(Frequencies, Freq),
-      reply(Pid, ok),
+      reply(Pid, Reply),
       loop(NewFrequencies);
     {request, Pid, stop} ->
-      reply(pid, ok)
+      reply(Pid, ok)
   end.
 
+-spec reply(pid(), reply()) -> {reply, reply()}.
 reply(Pid, Reply) ->
+  ?DEBUG({Pid, Reply}),
   Pid ! {reply, Reply}.
 
-allocate(Frequencies, Pid) -> {Frequencies, Pid}.
+-spec allocate(frequencies(), pid()) -> {frequencies(), reply()}.
+allocate({[], _L}=Frequencies, _Pid) ->
+  {Frequencies, {error, no_frequencies}};
+allocate({[H|T], L}, Pid) ->
+  {{T, [{Pid, H}|L]}, {ok, H}}.
 
-deallocate(Frequencies, Freq) -> {Frequencies, Freq}.
+-spec deallocate(frequencies(), frequency()) -> {frequencies(), ok}.
+deallocate({L1, L2}, Freq) ->
+  NewL2 = lists:keydelete(Freq, 1, L2),
+  {{[Freq|L1], NewL2}, ok}.

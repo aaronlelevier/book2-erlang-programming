@@ -17,3 +17,15 @@ start_stop_test() ->
   ch5_client_server:stop(),
   ?assertEqual(
     undefined, whereis(ServerName)).
+
+allocate_deallocate_test() ->
+  ch5_client_server:start(),
+
+  {ok, 1} = ch5_client_server:allocate(),
+  {ok, 2} = ch5_client_server:allocate(),
+  {error, no_frequencies} = ch5_client_server:allocate(),
+
+  ok = ch5_client_server:deallocate(1),
+  {ok, 1} = ch5_client_server:allocate(),
+
+  ch5_client_server:stop().
