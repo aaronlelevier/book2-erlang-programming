@@ -11,7 +11,8 @@
 -export([word_counts/1, file_to_list/1, list_to_words/1, count_words/1]).
 
 %% returns word counts from a file in a `map`
--spec word_counts(Path::file:name_all()) -> {ok, map()} | {error, Reason::file:posix()}.
+-spec word_counts(Path::file:name_all()) ->
+  {ok, map()} | {error, Reason::file:posix()}.
 word_counts(Path) ->
   L = file_to_list(Path),
   Words = list_to_words(L),
@@ -29,7 +30,7 @@ file_to_list(Path) ->
 %% converts the return value of `file_to_list` to a 1d list of words
 list_to_words(L) ->
   % each line is a string, and we remove all periods (".")
-  Lines = [hd(string:replace(H, ".", all)) || H <- L],
+  Lines = [hd(string:replace(H, ".", "all")) || H <- L],
 
   % convert each line to a list of words
   LineLists = [string:split(X, " ", all) || X <- Lines],
