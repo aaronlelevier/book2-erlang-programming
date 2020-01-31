@@ -7,3 +7,5 @@
 -endif.
 
 -define(LOG(X), io:format("DEBUG ~p:~p ~p~n",[?MODULE, ?LINE, X])).
+
+-define(TIMEOUT, 1000).

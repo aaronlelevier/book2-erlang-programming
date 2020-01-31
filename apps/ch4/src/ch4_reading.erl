@@ -10,10 +10,7 @@
 -author("aaron lelevier").
 -compile(export_all).
 -export([]).
-
 -include_lib("book2/include/macros.hrl").
-
--define(TIMEOUT, 1000).
 
 echo(Msg) ->
   Pid = spawn(?MODULE, loop, []),

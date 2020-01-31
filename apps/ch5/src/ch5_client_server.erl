@@ -18,7 +18,6 @@
 
 %% Macros
 -define(SERVER, frequency).
--define(TIMEOUT, 1000).
 -define(FREQUENCIES, [1, 2]).
 
 -type frequency() :: integer().

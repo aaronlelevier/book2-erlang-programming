@@ -9,11 +9,10 @@
 -module(ch4_ex1).
 -author("aaron lelevier").
 -export([start/0, print/1, stop/0, loop/0]).
+-include_lib("book2/include/macros.hrl").
 
 %% Macros
-
 -define(SERVER, echo).
--define(TIMEOUT, 1000).
 
 %% Public API
 
