@@ -11,7 +11,7 @@
 %%% @end
 %%% Created : 31. Jan 2020 5:59 AM
 %%%-------------------------------------------------------------------
--module(ch5_event_handler).
+-module(ch5_process_pattern).
 -author("aaron lelevier").
 -include_lib("book2/include/macros.hrl").
 
