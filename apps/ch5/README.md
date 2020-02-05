@@ -1,9 +1,9 @@
-ch5
-=====
+# ch5
 
-An OTP application
+Process Design Patterns
 
-Build
------
+### Misc TODO
 
-    $ rebar3 compile
+update Intellij Erl file template for standard Erl file
+
+- don't want `-export(compile_all)` 

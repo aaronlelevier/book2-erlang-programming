@@ -8,7 +8,9 @@
 %%%-------------------------------------------------------------------
 -module(ch5_event_manager).
 -author("aaron lelevier").
--export([]).
+-export([start/2, stop/1]).
+-export([add_handler/3, delete_handler/2, get_data/2, send_event/2]).
+-export([init/1]).
 
 start(Name, HandlerList) ->
   register(Name, spawn(?MODULE, init, [HandlerList])), ok.
@@ -17,8 +19,8 @@ init(HandlerList) ->
   loop(initialize(HandlerList)).
 
 initialize([]) -> [];
-initialize([{Handler, InitData}|Rest]) ->
-  [{Handler, Handler:init(InitData)}|initialize(Rest)].
+initialize([{Handler, InitData} | Rest]) ->
+  [{Handler, Handler:init(InitData)} | initialize(Rest)].
 
 stop(Name) ->
   Name ! {stop, self()},
@@ -27,8 +29,8 @@ stop(Name) ->
   end.
 
 terminate([]) -> [];
-terminate([{Handler, Data}|Rest]) ->
-  [{Handler, Handler:terminate(Data)}|terminate(Rest)].
+terminate([{Handler, Data} | Rest]) ->
+  [{Handler, Handler:terminate(Data)} | terminate(Rest)].
 
 add_handler(Name, Handler, Data) ->
   call(Name, {add_handler, Handler, Data}).
@@ -43,15 +45,32 @@ send_event(Name, Event) ->
   call(Name, {send_event, Event}).
 
 handle_msg({add_handler, Handler, Data}, LoopData) ->
-  {ok, [{Handler, Handler:init(Data)}|LoopData]};
+  {ok, [{Handler, Handler:init(Data)} | LoopData]};
 
 handle_msg({delete_handler, Handler}, LoopData) ->
   case lists:keysearch(Handler, 1, LoopData) of
     false ->
       {error, instance};
-    {value, }
-  end
+    {value, {Handler, Data}} ->
+      Reply = {data, Handler:terminate(Data)},
+      NewLoopData = lists:keydelete(Handler, 1, LoopData),
+      {Reply, NewLoopData}
+  end;
 
+handle_msg({get_data, Handler}, LoopData) ->
+  case lists:keysearch(Handler, 1, LoopData) of
+    false ->
+      {{error, instance}, LoopData};
+    {value, {Handler, Data}} ->
+      {{data, Data}, LoopData}
+  end;
+
+handle_msg({send_event, Event}, LoopData) ->
+  {ok, event(Event, LoopData)}.
+
+event(_Event, []) -> [];
+event(Event, [{Handler, Data} | Rest]) ->
+  [{Handler, Handler:handle_event(Event, Data)} | event(Event, Rest)].
 
 %% common server functions
 
