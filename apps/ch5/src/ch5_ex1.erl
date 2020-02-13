@@ -13,19 +13,22 @@
 -include_lib("book2/include/macros.hrl").
 
 %% functional interface
--export([start/2, stop/1, write/2, delete/1, read/1, match/1]).
+-export([start/0, stop/0, write/2, delete/1, read/1, match/1]).
 %% server
--export([init/1, call/2]).
+-export([init/0, call/2]).
+
+%% macros
+-define(SERVER, db).
 
 %% functional interface
 
-start(Name, Data) ->
-  Pid = spawn(?MODULE, init, [Data]),
-  register(Name, Pid),
+start() ->
+  Pid = spawn(?MODULE, init, []),
+  register(?SERVER, Pid),
   ok.
 
-stop(Name) ->
-  Name ! {stop, self()},
+stop() ->
+  ?SERVER ! {stop, self()},
   receive
     {reply, Reply} ->
       Reply
@@ -59,8 +62,8 @@ call(Name, Msg) ->
 reply(To, Reply) ->
   To ! {reply, Reply}.
 
-init(Data) ->
-  loop(initialize(Data)).
+init() ->
+  loop([]).
 
 loop(State) ->
   receive
@@ -75,8 +78,6 @@ loop(State) ->
   end.
 
 %% impl specific functions
-
-initialize(State) -> State.
 
 handle_msg({call, {add, Person}}, State) ->
   NewState = [Person|State],
