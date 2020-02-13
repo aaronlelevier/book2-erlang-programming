@@ -5,7 +5,8 @@
   {mod, {ch5_app, []}},
   {applications,
    [kernel,
-    stdlib
+    stdlib,
+    book2
    ]},
   {env,[]},
   {modules, []},

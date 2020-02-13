@@ -27,7 +27,6 @@ start_test() ->
   ?assertEqual(ok, ch5_ex1:stop()),
   ?assertEqual(undefined, whereis(Server)).
 
-%% TODO: use https://erlang.org/doc/man/proplists.html
 read_write_test() ->
   % start
   ?assertEqual(ok, ch5_ex1:start()),
@@ -41,6 +40,43 @@ read_write_test() ->
 
   % read - key does not exist
   ?assertEqual({error, instance}, ch5_ex1:read(some_bad_key)),
+
+  % stop
+  ?assertEqual(ok, ch5_ex1:stop()).
+
+delete_test() ->
+  % start
+  ?assertEqual(ok, ch5_ex1:start()),
+
+  % write
+  {Key, Element} = {aaron, [{bike, commencal}, {size, 29}]},
+  ?assertEqual(ok, ch5_ex1:write(Key, Element)),
+
+  % read - key exists
+  ?assertEqual({ok, Element}, ch5_ex1:read(Key)),
+
+  % delete
+  ?assertEqual(ok, ch5_ex1:delete(Key)),
+
+  % read - key no longer exists
+  ?assertEqual({error, instance}, ch5_ex1:read(Key)),
+
+  % stop
+  ?assertEqual(ok, ch5_ex1:stop()).
+
+match_test() ->
+  % start
+  ?assertEqual(ok, ch5_ex1:start()),
+
+  ?assertEqual(ok, ch5_ex1:write(aaron, {bike, commencal})),
+  ?assertEqual(ok, ch5_ex1:write(aaron, {bike, trek})),
+  ?assertEqual(ok, ch5_ex1:write(bob, {bike, trek})),
+
+  % match - multiple keys
+  ?assertEqual([aaron, bob], ch5_ex1:match({bike, trek})),
+
+  % match - no keys
+  ?assertEqual([], ch5_ex1:match(not_an_element)),
 
   % stop
   ?assertEqual(ok, ch5_ex1:stop()).

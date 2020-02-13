@@ -2,9 +2,7 @@
 %%% @author aaron lelevier
 %%% @copyright (C) 2020, <COMPANY>
 %%% @doc DB module
-%%% Has a functional interface to a DB where the data is stored in the
-%%% process state. This is a key/value DB where the key is an atom and
-%%% the value can be anything.
+%%% Has a functional interface to a key/value DB
 %%% @end
 %%% Created : 12. Feb 2020 5:16 AM
 %%%-------------------------------------------------------------------
@@ -15,7 +13,7 @@
 %% functional interface
 -export([start/0, stop/0, write/2, delete/1, read/1, match/1]).
 %% server
--export([init/0, call/2]).
+-export([init/0, call/1]).
 
 %% macros
 -define(SERVER, db).
@@ -36,22 +34,26 @@ stop() ->
     stop_timeout
   end.
 
--spec write(Key::atom(), Element::any()) -> ok.
-write(Key, Element) -> ok.
+-spec write(Key :: atom(), Element :: any()) -> ok.
+write(Key, Element) ->
+  call({write, {Key, Element}}).
 
--spec delete(Key::atom()) -> ok.
-delete(Key) -> ok.
+-spec delete(Key :: atom()) -> ok.
+delete(Key) ->
+  call({delete, Key}).
 
--spec read(Key::atom()) -> {ok, Element::any()} | {error, instance}.
-read(Key) -> ok.
+-spec read(Key :: atom()) -> {ok, Element :: any()} | {error, instance}.
+read(Key) ->
+  call({read, Key}).
 
--spec match(Element::any()) -> [Key::atom()].
-match(Element) -> [keys].
+-spec match(Element :: any()) -> [Key :: atom()].
+match(Element) ->
+  call({match, Element}).
 
 %% server
 
-call(Name, Msg) ->
-  Name ! {call, self(), Msg},
+call(Msg) ->
+  ?SERVER ! {call, self(), Msg},
   receive
     {reply, Reply} ->
       Reply
@@ -63,7 +65,7 @@ reply(To, Reply) ->
   To ! {reply, Reply}.
 
 init() ->
-  loop([]).
+  loop(#{}).
 
 loop(State) ->
   receive
@@ -79,14 +81,20 @@ loop(State) ->
 
 %% impl specific functions
 
-handle_msg({call, {add, Person}}, State) ->
-  NewState = [Person|State],
+handle_msg({call, {write, {Key, Element}}}, State) ->
+  {ok, State#{Key => Element}};
+handle_msg({call, {read, Key}}, State) ->
+  Reply = try maps:get(Key, State) of
+            Value -> {ok, Value}
+          catch
+            error:{badkey, Key} -> {error, instance}
+          end,
+  {Reply, State};
+handle_msg({call, {delete, Key}}, State) ->
+  NewState = maps:remove(Key, State),
   {ok, NewState};
-handle_msg({call, remove}, State) ->
-  % reverses list so add/removal is FIFO
-  [H|T] = lists:reverse(State),
-  NewState = lists:reverse(T),
-  Reply = {ok, H},
-  {Reply, NewState}.
+handle_msg({call, {match, Element}}, State) ->
+  Keys = [K || {K,V} <- maps:to_list(State), V =:= Element],
+  {Keys, State}.
 
 terminate(_State) -> ok.
