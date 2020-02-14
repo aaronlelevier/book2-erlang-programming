@@ -14,9 +14,9 @@
 -export([start/0, stop/0, allocate/0, deallocate/1]).
 -export([init/0]).
 %% extra
--export([server_name/0]).
+-export([server_name/0, count/1]).
 %% worker
--export([worker_loop/0]).
+-export([worker/1, response/2, frequencies/0]).
 
 %% Macros
 -define(SERVER, frequency).
@@ -25,7 +25,7 @@
 -type frequency() :: integer().
 %% { AvailableFrequencies, InUseFrequencies }
 -type frequencies() :: {[frequency()], [{pid(), frequency()}]}.
--type reply() :: ok | {ok, frequency()} | {error, no_frequencies}.
+-type reply() :: ok | error | {ok, frequency()} | {error, no_frequencies}.
 
 %% Client functions
 
@@ -37,12 +37,17 @@ stop() -> call(stop).
 -spec allocate() -> reply().
 allocate() -> call(allocate).
 
--spec deallocate(Freq::integer()) -> ok | error.
+-spec deallocate(Freq :: integer()) -> ok | error.
 deallocate(Freq) -> call({deallocate, Freq}).
 
 %% Extra Client Functions
 
 server_name() -> ?SERVER.
+
+-spec count(atom()) -> integer().
+count(in_use) -> call({count, in_use}).
+
+frequencies() -> call(frequencies).
 
 %% Internal API
 
@@ -78,8 +83,22 @@ loop(Frequencies) ->
       {NewFrequencies, Reply} = deallocate(Frequencies, Freq, Pid),
       reply(Pid, Reply),
       loop(NewFrequencies);
+    {request, Pid, frequencies} ->
+      reply(Pid, Frequencies),
+      loop(Frequencies);
+    {request, Pid, {count, in_use}} ->
+      Reply = count(in_use, Frequencies),
+      reply(Pid, Reply),
+      loop(Frequencies);
     {request, Pid, stop} ->
-      reply(Pid, ok)
+      {ok, InUse} = count(in_use, Frequencies),
+      case InUse of
+        0 ->
+          reply(Pid, ok);
+        I when I > 0 ->
+          reply(Pid, {error, frequencies_currently_allocated}),
+          loop(Frequencies)
+      end
   end.
 
 -spec reply(pid(), reply()) -> {reply, reply()}.
@@ -98,24 +117,38 @@ allocate({[Freq | T], L}, Pid) ->
 deallocate({L1, L2}, Freq, Pid) ->
   case lists:member({Pid, Freq}, L2) of
     true ->
-      NewL2 = lists:keydelete(Freq, 1, L2),
+      NewL2 = lists:keydelete(Freq, 2, L2),
       {{[Freq | L1], NewL2}, ok};
     _ ->
       {{L1, L2}, error}
   end.
 
+count(in_use, Frequencies) ->
+  {_Avail, InUse} = Frequencies,
+  {ok, length(InUse)}.
+
 %% worker - process that I can tell to allocate/deallocate frequencies
 
-worker_loop() ->
+worker(State) ->
   receive
     {Pid, allocate} ->
       % TODO: handle error case where can't allocate
       reply(Pid, allocate()),
-      worker_loop()
-  % TODO: handle deallocate case
+      worker(State);
+    {Pid, {deallocate, Freq}} ->
+      reply(Pid, deallocate(Freq)),
+      worker(State)
   after ?TIMEOUT ->
     worker_loop_timeout
   end.
 
-
-
+response(Pid, Msg) ->
+  Pid ! {self(), Msg},
+  Response = receive
+               {reply, Val} ->
+                 Val
+             after
+               ?TIMEOUT ->
+                 response_timeout
+             end,
+  Response.
