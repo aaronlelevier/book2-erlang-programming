@@ -1,7 +1,7 @@
 %%%-------------------------------------------------------------------
 %%% @author aaron lelevier
 %%% @copyright (C) 2020, <COMPANY>
-%%% @doc
+%%% @doc Frequency server example
 %%%
 %%% @end
 %%% Created : 28. Jan 2020 6:05 AM
