@@ -20,7 +20,8 @@
 
 %% Macros
 -define(SERVER, frequency).
--define(FREQUENCIES, [1, 2]).
+-define(FREQUENCIES, [1, 2, 3, 4, 5, 6]).
+-define(MAX_FREQUENCIES, 3).
 
 -type frequency() :: integer().
 %% { AvailableFrequencies, InUseFrequencies }
@@ -39,7 +40,7 @@ stop() -> call(stop).
 allocate() -> call(allocate).
 
 %% allocates N frequencies
--spec allocate(N::integer()) -> reply().
+-spec allocate(N :: integer()) -> reply().
 allocate(N) -> call({allocate, N}).
 
 -spec deallocate(Freq :: integer()) -> ok | error.
@@ -118,8 +119,14 @@ reply(Pid, Reply) ->
 -spec allocate(frequencies(), pid()) -> {frequencies(), reply()}.
 allocate({[], _L} = Frequencies, _Pid) ->
   {Frequencies, {error, no_frequencies}};
-allocate({[Freq | T], L}, Pid) ->
-  {{T, [{Pid, Freq} | L]}, {ok, Freq}}.
+allocate({[Freq | T], L} = Frequencies, Pid) ->
+  PidL = proplists:lookup_all(Pid, L),
+  if
+    length(PidL) >= 3 ->
+      {Frequencies, {error, no_frequencies}};
+    true ->
+      {{T, [{Pid, Freq} | L]}, {ok, Freq}}
+  end.
 
 allocate(Frequencies, N, Pid) ->
   allocate(Frequencies, N, Pid, []).
@@ -128,7 +135,7 @@ allocate(Frequencies, 0, Pid, Acc) ->
   {Frequencies, {ok, lists:reverse(Acc)}};
 allocate(Frequencies, N, Pid, Acc) ->
   {Frequencies2, {ok, Freq}} = allocate(Frequencies, Pid),
-  allocate(Frequencies2, N-1, Pid, [Freq|Acc]).
+  allocate(Frequencies2, N - 1, Pid, [Freq | Acc]).
 
 -spec deallocate(frequencies(), frequency(), pid()) ->
   {frequencies(), ok} | {frequencies(), error}.

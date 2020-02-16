@@ -88,7 +88,7 @@ frequencies_test() ->
   ?assertEqual(ok, ch5_ex2:start()),
 
   Frequencies = ch5_ex2:frequencies(),
-  ?assertEqual({[1, 2], []}, Frequencies),
+  ?assertEqual({[1, 2, 3, 4, 5, 6], []}, Frequencies),
 
   % frequency server is still alive
   ?assert(is_pid(whereis(ch5_ex2:server_name()))),
@@ -97,12 +97,12 @@ frequencies_test() ->
   ?assertEqual({ok, Freq1}, ch5_ex2:allocate()),
 
   Frequencies2 = ch5_ex2:frequencies(),
-  ?assertEqual({[2], [{self(), 1}]}, Frequencies2),
+  ?assertEqual({[2, 3, 4, 5, 6], [{self(), 1}]}, Frequencies2),
 
   ?assertEqual(ok, ch5_ex2:deallocate(Freq1)),
 
   Frequencies3 = ch5_ex2:frequencies(),
-  ?assertEqual({[1, 2], []}, Frequencies3),
+  ?assertEqual({[1, 2, 3, 4, 5, 6], []}, Frequencies3),
 
   % now we can stop
   ?assertEqual(ok, ch5_ex2:stop()).
@@ -138,6 +138,30 @@ can_allocate_more_than_one_frequency_at_a_time_test() ->
   % deallocate
   ?assertEqual(ok, ch5_ex2:deallocate(Freq1)),
   ?assertEqual(ok, ch5_ex2:deallocate(Freq2)),
+
+  % stop
+  ?assertEqual(ok, ch5_ex2:stop()).
+
+client_can_allocate_3_frequencies_max_test() ->
+  ?assertEqual(ok, ch5_ex2:start()),
+
+  % allocate
+  ?assertEqual({ok, [1, 2, 3]}, ch5_ex2:allocate(3)),
+
+  % max allowed frequencies is enforced
+  ?assertEqual({error, no_frequencies}, ch5_ex2:allocate()),
+
+  % worker (diff client) can allocate a frequency though
+  Worker = spawn(ch5_ex2, worker, [[]]),
+  Reply = ch5_ex2:response(Worker, allocate),
+  Freq4 = 4,
+  ?assertEqual({ok, Freq4}, Reply),
+  % worker deallocates their own frequency
+  Reply2 = ch5_ex2:response(Worker, {deallocate, Freq4}),
+  ?assertEqual(ok, Reply2),
+
+  % deallocate
+  [ch5_ex2:deallocate(X) || X <- lists:seq(1, 4)],
 
   % stop
   ?assertEqual(ok, ch5_ex2:stop()).
