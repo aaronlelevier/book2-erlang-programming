@@ -88,7 +88,7 @@ frequencies_test() ->
   ?assertEqual(ok, ch5_ex2:start()),
 
   Frequencies = ch5_ex2:frequencies(),
-  ?assertEqual({[1,2], []}, Frequencies),
+  ?assertEqual({[1, 2], []}, Frequencies),
 
   % frequency server is still alive
   ?assert(is_pid(whereis(ch5_ex2:server_name()))),
@@ -97,12 +97,12 @@ frequencies_test() ->
   ?assertEqual({ok, Freq1}, ch5_ex2:allocate()),
 
   Frequencies2 = ch5_ex2:frequencies(),
-  ?assertEqual({[2], [{self(),1}]}, Frequencies2),
+  ?assertEqual({[2], [{self(), 1}]}, Frequencies2),
 
   ?assertEqual(ok, ch5_ex2:deallocate(Freq1)),
 
   Frequencies3 = ch5_ex2:frequencies(),
-  ?assertEqual({[1,2], []}, Frequencies3),
+  ?assertEqual({[1, 2], []}, Frequencies3),
 
   % now we can stop
   ?assertEqual(ok, ch5_ex2:stop()).
@@ -122,4 +122,22 @@ can_only_stop_if_no_frequencies_are_allocated_test() ->
   ?assertEqual({ok, 0}, ch5_ex2:count(in_use)),
   ?assertEqual(ok, ch5_ex2:stop()).
 
+can_allocate_more_than_one_frequency_at_a_time_test() ->
+  % start
+  ?assertEqual(ok, ch5_ex2:start()),
 
+  % allocate
+  Freq1 = 1,
+  Freq2 = 2,
+  Freqs = [Freq1, Freq2],
+  ?assertEqual({ok, Freqs}, ch5_ex2:allocate(2)),
+
+  % 2 frequencies have been allocated
+  ?assertEqual({ok, 2}, ch5_ex2:count(in_use)),
+
+  % deallocate
+  ?assertEqual(ok, ch5_ex2:deallocate(Freq1)),
+  ?assertEqual(ok, ch5_ex2:deallocate(Freq2)),
+
+  % stop
+  ?assertEqual(ok, ch5_ex2:stop()).

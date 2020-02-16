@@ -11,7 +11,7 @@
 -include_lib("book2/include/macros.hrl").
 
 %% exports
--export([start/0, stop/0, allocate/0, deallocate/1]).
+-export([start/0, stop/0, allocate/0, allocate/1, deallocate/1]).
 -export([init/0]).
 %% extra
 -export([server_name/0, count/1]).
@@ -34,8 +34,13 @@ start() ->
 
 stop() -> call(stop).
 
+%% allocates a single frequency
 -spec allocate() -> reply().
 allocate() -> call(allocate).
+
+%% allocates N frequencies
+-spec allocate(N::integer()) -> reply().
+allocate(N) -> call({allocate, N}).
 
 -spec deallocate(Freq :: integer()) -> ok | error.
 deallocate(Freq) -> call({deallocate, Freq}).
@@ -79,6 +84,10 @@ loop(Frequencies) ->
       {NewFrequencies, Reply} = allocate(Frequencies, Pid),
       reply(Pid, Reply),
       loop(NewFrequencies);
+    {request, Pid, {allocate, N}} ->
+      {NewFrequencies, Reply} = allocate(Frequencies, N, Pid),
+      reply(Pid, Reply),
+      loop(NewFrequencies);
     {request, Pid, {deallocate, Freq}} ->
       {NewFrequencies, Reply} = deallocate(Frequencies, Freq, Pid),
       reply(Pid, Reply),
@@ -111,6 +120,15 @@ allocate({[], _L} = Frequencies, _Pid) ->
   {Frequencies, {error, no_frequencies}};
 allocate({[Freq | T], L}, Pid) ->
   {{T, [{Pid, Freq} | L]}, {ok, Freq}}.
+
+allocate(Frequencies, N, Pid) ->
+  allocate(Frequencies, N, Pid, []).
+
+allocate(Frequencies, 0, Pid, Acc) ->
+  {Frequencies, {ok, lists:reverse(Acc)}};
+allocate(Frequencies, N, Pid, Acc) ->
+  {Frequencies2, {ok, Freq}} = allocate(Frequencies, Pid),
+  allocate(Frequencies2, N-1, Pid, [Freq|Acc]).
 
 -spec deallocate(frequencies(), frequency(), pid()) ->
   {frequencies(), ok} | {frequencies(), error}.
