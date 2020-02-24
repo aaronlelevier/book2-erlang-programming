@@ -12,7 +12,9 @@
 -include_lib("book2/include/macros.hrl").
 
 start() ->
-  register(?MODULE, spawn_link(?MODULE, loop, [])).
+  Pid = spawn_link(?MODULE, loop, []),
+  register(?MODULE, Pid),
+  {ok, Pid}.
 
 loop() ->
   receive
