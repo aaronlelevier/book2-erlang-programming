@@ -13,8 +13,10 @@
 -export([start/0, stop/0]).
 -export([wait/0, signal/0]).
 -export([init/0]).
-%% me
--export([client_loop/0, status/0]).
+%% me - server
+-export([status/0]).
+%% me - client
+-export([start_client/0, client_loop/0]).
 
 -include_lib("book2/include/macros.hrl").
 
@@ -33,14 +35,17 @@ wait() ->
   ?MUTEX_SERVER ! {wait, self()},
   receive
     ok ->
-      ok
+      {ok, {status, busy}}
+  after
+    ?TIMEOUT ->
+      {wait_timeout, {status, busy}}
   end.
 
 %% releases the mutex
 signal() ->
   ?DEBUG(signal),
   ?MUTEX_SERVER ! {signal, self()},
-  ok.
+  {ok, {status, free}}.
 
 init() -> free().
 
@@ -55,7 +60,10 @@ free() ->
       busy(Pid);
     {stop, Pid} ->
       terminate(),
-      Pid ! ok
+      Pid ! ok;
+    Other ->
+      ?DEBUG({error, Other}),
+      free()
   end.
 
 busy(Pid) ->
@@ -65,7 +73,13 @@ busy(Pid) ->
       Pid ! {status, busy},
       busy(Pid);
     {signal, Pid} ->
-      free()
+      free();
+    {status, ClientPid} ->
+      ClientPid ! {status, busy},
+      busy(Pid);
+    Other ->
+      ?DEBUG({error, Other}),
+      busy(Pid)
   end.
 
 status() ->
@@ -73,6 +87,9 @@ status() ->
   receive
     {status, Status} ->
       {status, Status}
+  after
+    ?TIMEOUT ->
+      timeout
   end.
 
 terminate() ->
@@ -86,7 +103,13 @@ terminate() ->
   end.
 
 %% client loop
+
+start_client() ->
+  Pid = spawn(?MODULE, client_loop, []),
+  {ok, Pid}.
+
 client_loop() ->
+  ?DEBUG(client_loop),
   receive
     {wait, Pid} ->
       Pid ! ok,
@@ -94,5 +117,6 @@ client_loop() ->
       client_loop();
     {signal, Pid} ->
       signal(),
-      Pid ! ok
+      Pid ! ok,
+      client_loop()
   end.

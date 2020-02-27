@@ -13,27 +13,19 @@
 -include_lib("eunit/include/eunit.hrl").
 
 acquire_and_release_mutex_test() ->
-  {ok, ServerPid} = ch6_ex2:start(),
-  assert_pid_is_runnable(ServerPid),
+  {ok, _ServerPid} = ch6_ex2:start(),
 
-  PidA = spawn(ch6_ex2, client_loop, []),
+  {ok, PidA} = ch6_ex2:start_client(),
   ?assertEqual({status, free}, ch6_ex2:status()),
 
   PidA ! {wait, self()},
   receive ok -> ok end,
-  assert_pid_is_waiting(PidA),
-
-%%  % acquire
- % TODO: need to spawn a separate client here to wait
-%%%%  ?assertEqual(ok, ch6_ex2:wait()),
-
-  % TODO: something is blocking this call if the Server is busy
-  % process just hands and won't respond
   ?assertEqual({status, busy}, ch6_ex2:status()),
-%%
-%%  % release
-%%  ?assertEqual(ok, ch6_ex2:signal()),
-%%  ?assertEqual({status, free}, ch6_ex2:status()),
+
+  % release
+  PidA ! {signal, self()},
+  receive ok -> ok end,
+  ?assertEqual({status, free}, ch6_ex2:status()),
 
   ?assertEqual(ok, ch6_ex2:stop()).
 
