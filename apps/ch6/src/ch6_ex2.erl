@@ -58,7 +58,7 @@ free() ->
       Pid ! {status, free},
       free();
     {wait, Pid} ->
-      link(Pid),
+      monitor(process, Pid),
       Pid ! ok,
       busy(Pid);
     {stop, Pid} ->
@@ -76,12 +76,14 @@ busy(Pid) ->
       Pid ! {status, busy},
       busy(Pid);
     {signal, Pid} ->
-      unlink(Pid),
+      % SHOULD: do this, but then Ref's need to be tracked for monitored
+      % clients in th Server state
+      % demonitor(Ref),
       free();
     {status, ClientPid} ->
       ClientPid ! {status, busy},
       busy(Pid);
-    {'EXIT', _Pid, _Reason} ->
+    {'DOWN', _Ref, process, _Pid, _Reason} ->
       free();
     Other ->
       ?DEBUG({error, Other}),
@@ -111,7 +113,7 @@ terminate() ->
 %% client loop
 
 start_client() ->
-  Pid = spawn(?MODULE, client_loop, []),
+  {Pid, _Ref} = spawn_monitor(?MODULE, client_loop, []),
   {ok, Pid}.
 
 client_loop() ->

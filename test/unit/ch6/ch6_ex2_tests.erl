@@ -42,7 +42,12 @@ client_is_linked_to_mutex_and_releases_if_terminated() ->
 
   % client terminates and mutex is released
   exit(PidA, kill),
-  ?debugMsg("post client kill"),
+  % client is monitored in `start_client/0`, so we can wait until it exits
+  % to confirm the the server state
+  receive
+    {'DOWN', _Ref, process, PidA, _Reason} ->
+      ok
+  end,
   ?assertEqual({status, free}, ch6_ex2:status()).
 
 acquire_and_release_mutex_test_test_() ->
