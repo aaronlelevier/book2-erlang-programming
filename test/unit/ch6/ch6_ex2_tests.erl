@@ -12,9 +12,13 @@
 
 -include_lib("eunit/include/eunit.hrl").
 
-acquire_and_release_mutex_test() ->
-  {ok, _ServerPid} = ch6_ex2:start(),
+top_setup() ->
+  {ok, _ServerPid} = ch6_ex2:start().
 
+top_cleanup(_) ->
+  ok = ch6_ex2:stop().
+
+acquire_and_release_mutex() ->
   {ok, PidA} = ch6_ex2:start_client(),
   ?assertEqual({status, free}, ch6_ex2:status()),
 
@@ -25,9 +29,16 @@ acquire_and_release_mutex_test() ->
   % release
   PidA ! {signal, self()},
   receive ok -> ok end,
-  ?assertEqual({status, free}, ch6_ex2:status()),
+  ?assertEqual({status, free}, ch6_ex2:status()).
 
-  ?assertEqual(ok, ch6_ex2:stop()).
+acquire_and_release_mutex_test_test_() ->
+  {setup,
+    fun top_setup/0,
+    fun top_cleanup/1,
+    [fun acquire_and_release_mutex/0]}.
+
+%%client_is_linked_to_mutex_and_releases_mutex_if_client_terminates() ->
+
 
 %% helpers
 
