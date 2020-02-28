@@ -17,8 +17,9 @@
 %% me
 -export([client_loop/0]).
 
--include_lib("ch5/include/macros.hrl").
 -include_lib("book2/include/macros.hrl").
+
+-define(MUTEX_SERVER, ?MODULE).
 
 start() ->
   Pid = spawn(?MODULE, init, []),

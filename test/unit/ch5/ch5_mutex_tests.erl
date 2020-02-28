@@ -30,17 +30,11 @@ book_example_test() ->
 
   PidA ! {signal, self()},
   receive ok -> ok end,
-  assert_pid_is_stopped(PidA),
-  assert_pid_is_runnable(PidB),
-  assert_pid_is_waiting(ServerPid),
 
   PidB ! {signal, self()},
   receive ok -> ok end,
-  assert_pid_is_stopped(PidB),
 
   % stop mutex server
-  assert_pid_is_waiting(ServerPid),
-
   ch5_mutex:stop(),
   receive ok -> ok end,
   assert_pid_is_stopped(ServerPid).
