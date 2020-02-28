@@ -31,14 +31,28 @@ acquire_and_release_mutex() ->
   receive ok -> ok end,
   ?assertEqual({status, free}, ch6_ex2:status()).
 
+client_is_linked_to_mutex_and_releases_if_terminated() ->
+  {ok, PidA} = ch6_ex2:start_client(),
+  ?assertEqual({status, free}, ch6_ex2:status()),
+
+  % client acquires mutex
+  PidA ! {wait, self()},
+  receive ok -> ok end,
+  ?assertEqual({status, busy}, ch6_ex2:status()),
+
+  % client terminates and mutex is released
+  exit(PidA, kill),
+  ?debugMsg("post client kill"),
+  ?assertEqual({status, free}, ch6_ex2:status()).
+
 acquire_and_release_mutex_test_test_() ->
   {setup,
     fun top_setup/0,
     fun top_cleanup/1,
-    [fun acquire_and_release_mutex/0]}.
-
-%%client_is_linked_to_mutex_and_releases_mutex_if_client_terminates() ->
-
+    [
+      fun acquire_and_release_mutex/0,
+      fun client_is_linked_to_mutex_and_releases_if_terminated/0
+    ]}.
 
 %% helpers
 

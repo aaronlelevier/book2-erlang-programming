@@ -47,7 +47,9 @@ signal() ->
   ?MUTEX_SERVER ! {signal, self()},
   {ok, {status, free}}.
 
-init() -> free().
+init() ->
+  process_flag(trap_exit, true),
+  free().
 
 free() ->
   ?DEBUG(free),
@@ -56,6 +58,7 @@ free() ->
       Pid ! {status, free},
       free();
     {wait, Pid} ->
+      link(Pid),
       Pid ! ok,
       busy(Pid);
     {stop, Pid} ->
@@ -73,10 +76,13 @@ busy(Pid) ->
       Pid ! {status, busy},
       busy(Pid);
     {signal, Pid} ->
+      unlink(Pid),
       free();
     {status, ClientPid} ->
       ClientPid ! {status, busy},
       busy(Pid);
+    {'EXIT', _Pid, _Reason} ->
+      free();
     Other ->
       ?DEBUG({error, Other}),
       busy(Pid)
