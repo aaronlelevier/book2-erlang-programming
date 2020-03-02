@@ -9,6 +9,7 @@
 -module(ch6_ex3_tests).
 -author("aaron lelevier").
 -compile(export_all).
+-compile(nowarn_export_all).
 -include_lib("eunit/include/eunit.hrl").
 
 can_create_child_with_mode_test() ->
@@ -61,6 +62,36 @@ child_will_be_restarted_or_not_depending_on_mode_test() ->
   assert_is_pid(ch6_add_one2),
 
   ch6_ex3:stop(SupName).
+
+start_children_tries_only_5_times_max_within_n_seconds_test() ->
+%%  c(ch6_ex3, {d, debug_flag}).
+  SupName = sup2,
+  InvalidModule = invalid_module,
+  ok = ch6_ex3:start_link(
+    SupName, [{permanent, InvalidModule, start, []}]),
+
+  % TODO: check that the child restart counter is incr 1x
+
+  ch6_ex3:stop(SupName).
+
+%% TODO: test that force killing a child can only N times per the "restart child" policy
+
+% helper tests
+
+child_restarts_incr_counter_per_module_function_key_test() ->
+  M = #{},
+  Key = {a,b},
+  Ret2 = ch6_ex3:child_restarts(Key, M),
+  ?assertEqual(#{Key => 1}, Ret2),
+
+  % populate another MF key in the counter
+  Key2 = {a, c},
+  Ret3 = ch6_ex3:child_restarts(Key2, Ret2),
+  ?assertEqual(#{Key => 1, Key2 => 1}, Ret3),
+
+  % increment an existing key
+  Ret4 = ch6_ex3:child_restarts(Key, Ret3),
+  ?assertEqual(#{Key => 2, Key2 => 1}, Ret4).
 
 %% helpers
 

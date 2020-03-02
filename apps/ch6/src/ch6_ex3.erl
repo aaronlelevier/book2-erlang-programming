@@ -10,34 +10,57 @@
 -author("aaron lelevier").
 -include_lib("book2/include/macros.hrl").
 
+-record(state, {
+  client_pid,
+  % { transient/permanent, M, F, A}
+  child_spec_list = [],
+  % {Pid, {M, F, A}}
+  child_list = [],
+  % map counter of child restarts: #{ {M,F,A} = 0 }
+  child_restarts = #{}
+}).
+
 %% API
--export([start_link/2, stop/1, init/2, children/2]).
+-export([start_link/2, stop/1, init/1, children/2]).
+%% helpers
+-export([child_restarts/2]).
 
 start_link(Name, ChildSpecList) ->
-  Pid = spawn_link(?MODULE, init, [self(), ChildSpecList]),
+  State = #state{
+    client_pid = self(), child_spec_list = ChildSpecList},
+  Pid = spawn_link(?MODULE, init, [State]),
   register(Name, Pid),
   % wait for the spawned supervisor process to signal that it is done
   % spawning all child processes
   receive {Pid, done} -> void end,
   ok.
 
-init(ClientPid, ChildSpecList) ->
+init(State) ->
   process_flag(trap_exit, true),
-  loop(ClientPid, start_children(ClientPid, ChildSpecList)).
+  ?DEBUG({state, State}),
+  ChildList = start_children(State, State#state.child_spec_list),
+  State2 = State#state{child_list = ChildList},
+  ?DEBUG({state2, State2}),
+  loop(State2).
 
-start_children(ClientPid, []) ->
+start_children(State, []) ->
+  ?DEBUG({state, State}),
+  ClientPid = State#state.client_pid,
   ClientPid ! {self(), done},
   [];
-start_children(ClientPid, [{Mode, M, F, A} | ChildSpecList]) ->
-  case (catch apply(M, F, A)) of
+start_children(State, [{Mode, M, F, A} | ChildSpecList]) ->
+  ?DEBUG({state, State}),
+   case (catch apply(M, F, A)) of
     {ok, Pid} ->
-      [{Pid, {Mode, M, F, A}} | start_children(ClientPid, ChildSpecList)];
+      ?DEBUG({child_started, {M, F, A}, Pid}),
+      [{Pid, {Mode, M, F, A}} | start_children(State, ChildSpecList)];
     _ ->
-      start_children(ClientPid, ChildSpecList)
+      ChildRestarts = child_restarts({M,F}, State#state.child_restarts),
+      State2 = State#state{child_restarts = ChildRestarts},
+      start_children(State2, ChildSpecList)
   end.
 
-children(Name, count) ->
-  call(Name, count).
+children(Name, count) -> call(Name, count).
 
 call(Name, count) ->
   Name ! {count, self()},
@@ -52,15 +75,18 @@ call(Name, count) ->
 reply(To, Msg) ->
   To ! {reply, Msg}.
 
-loop(ClientPid, ChildList) ->
+loop(State) ->
+  ClientPid = State#state.client_pid,
+  ChildList = State#state.child_list,
   receive
     {'EXIT', Pid, _Reason} ->
       NewChildList = restart_children(Pid, ChildList),
       ClientPid ! {self(), children_restarted},
-      loop(ClientPid, NewChildList);
+      State2 = State#state{child_list = NewChildList},
+      loop(State2);
     {count, From} ->
       reply(From, length(ChildList)),
-      loop(ClientPid, ChildList);
+      loop(State);
     {stop, From} ->
       From ! {reply, terminate(ChildList)}
   end.
@@ -87,3 +113,9 @@ stop(Name) ->
   receive
     {reply, Reply} -> Reply
   end.
+
+%% helpers
+
+child_restarts(Key, Map) ->
+  Value = maps:get(Key, Map, 0),
+  Map#{Key => Value + 1}.
