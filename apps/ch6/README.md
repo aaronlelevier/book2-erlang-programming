@@ -1,9 +1,11 @@
-ch6
-=====
+# ch6
 
-An OTP application
+## ex3
 
-Build
------
+## Things to learn
 
-    $ rebar3 compile
+Debugger - need to watch YouTube video again
+
+What is the variable that is the single arg to eunit `<name>_cleanup` method
+
+

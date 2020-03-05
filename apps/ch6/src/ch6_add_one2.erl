@@ -13,7 +13,6 @@
 
 start() ->
   Pid = spawn_link(?MODULE, loop, []),
-  register(?MODULE, Pid),
   {ok, Pid}.
 
 loop() ->

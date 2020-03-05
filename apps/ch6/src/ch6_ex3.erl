@@ -21,44 +21,63 @@
 }).
 
 %% API
--export([start_link/2, stop/1, init/1, children/2]).
-%% helpers
--export([child_restarts/2]).
+%% debug
+-compile(export_all).
 
-start_link(Name, ChildSpecList) ->
-  State = #state{
-    client_pid = self(), child_spec_list = ChildSpecList},
+%% Public API
+
+start_link(ChildSpecList) ->
+  State = #{
+    client_pid => self(),
+    child_specs => ChildSpecList,
+    children => []
+  },
   Pid = spawn_link(?MODULE, init, [State]),
-  register(Name, Pid),
-  % wait for the spawned supervisor process to signal that it is done
-  % spawning all child processes
+  register(?MODULE, Pid),
+  % wait for all child processes to spawn
   receive {Pid, done} -> void end,
   ok.
 
+stop() -> ok.
+
+% todo: need to implement `call` to the sup `loop` to get the children
+children() -> 0.
+
+%% Private API
+
 init(State) ->
   process_flag(trap_exit, true),
-  ?DEBUG({state, State}),
-  ChildList = start_children(State, State#state.child_spec_list),
-  State2 = State#state{child_list = ChildList},
-  ?DEBUG({state2, State2}),
+  State2 = start_children(State),
+  reply_done(State2),
   loop(State2).
 
-start_children(State, []) ->
-  ?DEBUG({state, State}),
-  ClientPid = State#state.client_pid,
-  ClientPid ! {self(), done},
-  [];
-start_children(State, [{Mode, M, F, A} | ChildSpecList]) ->
-  ?DEBUG({state, State}),
-   case (catch apply(M, F, A)) of
-    {ok, Pid} ->
-      ?DEBUG({child_started, {M, F, A}, Pid}),
-      [{Pid, {Mode, M, F, A}} | start_children(State, ChildSpecList)];
-    _ ->
-      ChildRestarts = child_restarts({M,F}, State#state.child_restarts),
-      State2 = State#state{child_restarts = ChildRestarts},
-      start_children(State2, ChildSpecList)
-  end.
+reply_done(State) ->
+  #{client_pid := ClientPid} = State,
+  ClientPid ! {self(), done}.
+
+%% take the `child_specs` list, spawn each child, and
+%% populate the `children` list
+start_children(State) ->
+  #{child_specs := ChildSpecs} = State,
+  start_children(State, ChildSpecs).
+
+start_children(State, []) -> State;
+start_children(State, [{Mode, M, F, A} | ChildSpecs]) ->
+  Child = init_child({Mode, M, F, A}),
+  #{children := Children} = State,
+  State2 = State#{
+    children := [Child | Children]
+  },
+  start_children(State2, ChildSpecs).
+
+%% TODO: test in isolation
+init_child({Mode, M, F, A}) ->
+  {ok, Pid} = apply(M, F, A),
+  UniqueId = make_ref(),
+  Restarts = 0,
+  {UniqueId, Pid, {M,F,A}, Mode, Restarts}.
+
+
 
 children(Name, count) -> call(Name, count).
 
@@ -75,21 +94,21 @@ call(Name, count) ->
 reply(To, Msg) ->
   To ! {reply, Msg}.
 
-loop(State) ->
-  ClientPid = State#state.client_pid,
-  ChildList = State#state.child_list,
-  receive
-    {'EXIT', Pid, _Reason} ->
-      NewChildList = restart_children(Pid, ChildList),
-      ClientPid ! {self(), children_restarted},
-      State2 = State#state{child_list = NewChildList},
-      loop(State2);
-    {count, From} ->
-      reply(From, length(ChildList)),
-      loop(State);
-    {stop, From} ->
-      From ! {reply, terminate(ChildList)}
-  end.
+loop(State) -> loop(State).
+%%  ClientPid = State#state.client_pid,
+%%  ChildList = State#state.child_list,
+%%  receive
+%%    {'EXIT', Pid, _Reason} ->
+%%      NewChildList = restart_children(Pid, ChildList),
+%%      ClientPid ! {self(), children_restarted},
+%%      State2 = State#state{child_list = NewChildList},
+%%      loop(State2);
+%%    {count, From} ->
+%%      reply(From, length(ChildList)),
+%%      loop(State);
+%%    {stop, From} ->
+%%      From ! {reply, terminate(ChildList)}
+%%  end.
 
 restart_children(Pid, ChildList) ->
   {value, {Pid, {Mode, M, F, A}}} = lists:keysearch(Pid, 1, ChildList),
