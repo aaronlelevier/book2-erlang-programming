@@ -27,7 +27,8 @@ perm_ok_test_() ->
     fun start_perm_ok_setup/0,
     fun stop_perm_ok_cleanup/1,
     [
-      fun start_perm_ok/0
+      fun start_perm_ok/0,
+      fun restart_perm_ok/0
     ]}.
 
 start_perm_ok() ->
@@ -41,6 +42,21 @@ start_perm_ok() ->
   ?assertEqual({ch6_add_one, start, []}, {M,F,A}),
   ?assertEqual(permanent, Mode),
   ?assertEqual(0, Restarts).
+
+restart_perm_ok() ->
+  Children = ch6_ex3:children(),
+  ?assertEqual(1, length(Children)),
+  Restarts = 0,
+  {_UniqueId, Pid, {M,F,A}, Mode, Restarts} = hd(Children),
+
+  exit(Pid, kill),
+
+  ?assertEqual(undefined, process_info(Pid)),
+  Children2 = ch6_ex3:children(),
+  ?assertEqual(1, length(Children2)),
+  Restarts2 = 1,
+  {_UniqueId2, Pid2, {M,F,A}, Mode, Restarts2} = hd(Children2),
+  ?assert(is_pid(Pid2)).
 
 %% individual tests
 
@@ -78,6 +94,53 @@ init_child_perm_ok_test() ->
   ?assert(is_reference(UniqueId)),
   ?assert(is_pid(Pid)),
   ?assertEqual(0, Restarts).
+
+restart_children_if_permanent_mode_child_is_restarted_test() ->
+  UniqueId = make_ref(),
+  Pid = self(),
+  M = ch6_add_one,
+  F = start,
+  A = [],
+  Mode = permanent,
+  Restarts = 0,
+  ChildSpecs = [{Mode, M, F, A}],
+  Child = {UniqueId, Pid, {M,F,A}, Mode, Restarts},
+  Children = [Child],
+  State = #{
+    child_specs => ChildSpecs,
+    children => Children
+  },
+
+  RetState = ch6_ex3:restart_children(Pid, State),
+  Ret = maps:get(children, RetState),
+
+  ?assertEqual(1, length(Ret)),
+  Child2 = hd(Ret),
+  {UniqueId2, Pid2, {M,F,A}, Mode, Restarts2} = Child2,
+  ?assert(is_reference(UniqueId2)),
+  ?assert(is_pid(Pid2)),
+  ?assertEqual(1, Restarts2).
+
+restart_children_if_transient_mode_child_is_not_restarted_test() ->
+  UniqueId = make_ref(),
+  Pid = self(),
+  M = ch6_add_one,
+  F = start,
+  A = [],
+  Mode = transient,
+  Restarts = 0,
+  ChildSpecs = [{Mode, M, F, A}],
+  Child = {UniqueId, Pid, {M,F,A}, Mode, Restarts},
+  Children = [Child],
+  State = #{
+    child_specs => ChildSpecs,
+    children => Children
+  },
+
+  RetState = ch6_ex3:restart_children(Pid, State),
+  Ret = maps:get(children, RetState),
+
+  ?assertEqual(0, length(Ret)).
 
 %%can_create_child_with_mode_test() ->
 %%  SupName = sup,

@@ -10,16 +10,6 @@
 -author("aaron lelevier").
 -include_lib("book2/include/macros.hrl").
 
--record(state, {
-  client_pid,
-  % { transient/permanent, M, F, A}
-  child_spec_list = [],
-  % {Pid, {M, F, A}}
-  child_list = [],
-  % map counter of child restarts: #{ {M,F,A} = 0 }
-  child_restarts = #{}
-}).
-
 %% API
 %% debug
 -compile(export_all).
@@ -37,8 +27,6 @@ start_link(ChildSpecList) ->
   % wait for all child processes to spawn
   receive {Pid, done} -> void end,
   ok.
-
-stop() -> ok.
 
 children() -> call(children).
 
@@ -69,13 +57,11 @@ start_children(State, [{Mode, M, F, A} | ChildSpecs]) ->
   },
   start_children(State2, ChildSpecs).
 
-%% TODO: test in isolation
 init_child({Mode, M, F, A}) ->
   {ok, Pid} = apply(M, F, A),
   UniqueId = make_ref(),
   Restarts = 0,
-  {UniqueId, Pid, {M,F,A}, Mode, Restarts}.
-
+  {UniqueId, Pid, {M, F, A}, Mode, Restarts}.
 
 call(Msg) ->
   ?MODULE ! {self(), Msg},
@@ -90,50 +76,51 @@ call(Msg) ->
 reply(To, Msg) ->
   To ! {reply, Msg}.
 
-
-
 loop(State) ->
   receive
     {From, children} ->
       reply(From, maps:get(children, State)),
       loop(State);
+    {From, stop} ->
+      ?LOG(State),
+      From ! {reply, terminate(State)};
+    {'EXIT', Pid, _Reason} ->
+      State2 = restart_children(Pid, State),
+      loop(State2);
     Other ->
       ?LOG({error, Other})
   end.
-%%  ClientPid = State#state.client_pid,
-%%  ChildList = State#state.child_list,
-%%  receive
-%%    {'EXIT', Pid, _Reason} ->
-%%      NewChildList = restart_children(Pid, ChildList),
-%%      ClientPid ! {self(), children_restarted},
-%%      State2 = State#state{child_list = NewChildList},
-%%      loop(State2);
-%%    {count, From} ->
-%%      reply(From, length(ChildList)),
-%%      loop(State);
-%%    {stop, From} ->
-%%      From ! {reply, terminate(ChildList)}
-%%  end.
 
-restart_children(Pid, ChildList) ->
-  {value, {Pid, {Mode, M, F, A}}} = lists:keysearch(Pid, 1, ChildList),
-  ChildList2 = lists:keydelete(Pid, 1, ChildList),
-  NewChildList = case Mode of
-                   transient ->
-                     ChildList2;
-                   permanent ->
-                     {ok, NewPid} = apply(M, F, A),
-                     [{NewPid, {Mode, M, F, A}} | ChildList2]
-                 end,
-  NewChildList.
+restart_children(Pid, State) ->
+  Children = maps:get(children, State),
+  % get child data
+  {value, {_UniqueId, Pid, {M, F, A}, Mode, Restarts}} =
+    lists:keysearch(Pid, 2, Children),
+  % remove from `children` list
+  Children2 = lists:keydelete(Pid, 2, Children),
+  % restart if Mode = permanent
+  NewChildren =
+    case Mode of
+      transient ->
+        Children2;
+      permanent ->
+        {ok, NewPid} = apply(M, F, A),
+        [{make_ref(), NewPid, {M, F, A}, Mode, Restarts + 1} | Children2]
+    end,
+  State#{children := NewChildren}.
 
-terminate([]) -> ok;
-terminate([{Pid, _} | ChildList]) ->
+terminate(State) ->
+  ?LOG(State),
+  Children = maps:get(children, State, []),
+  terminate(State, Children).
+
+terminate(_State, []) -> ok;
+terminate(State, [{_UniqueId, Pid, _MFA, _Mode, _Restarts} | Children]) ->
   exit(Pid, kill),
-  terminate(ChildList).
+  terminate(State, Children).
 
-stop(Name) ->
-  Name ! {stop, self()},
+stop() ->
+  ?MODULE ! {self(), stop},
   receive
     {reply, Reply} -> Reply
   end.
