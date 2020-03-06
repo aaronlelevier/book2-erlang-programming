@@ -31,7 +31,6 @@ perm_ok_test_() ->
     ]}.
 
 start_perm_ok() ->
-  % todo: failing here
   Children = ch6_ex3:children(),
 
   ?assertEqual(1, length(Children)),
@@ -43,7 +42,7 @@ start_perm_ok() ->
   ?assertEqual(permanent, Mode),
   ?assertEqual(0, Restarts).
 
-%% indiv tests
+%% individual tests
 
 start_children_perm_ok_test() ->
   Mode = permanent,

@@ -40,8 +40,7 @@ start_link(ChildSpecList) ->
 
 stop() -> ok.
 
-% todo: need to implement `call` to the sup `loop` to get the children
-children() -> 0.
+children() -> call(children).
 
 %% Private API
 
@@ -78,11 +77,8 @@ init_child({Mode, M, F, A}) ->
   {UniqueId, Pid, {M,F,A}, Mode, Restarts}.
 
 
-
-children(Name, count) -> call(Name, count).
-
-call(Name, count) ->
-  Name ! {count, self()},
+call(Msg) ->
+  ?MODULE ! {self(), Msg},
   receive
     {reply, Reply} ->
       Reply
@@ -94,7 +90,16 @@ call(Name, count) ->
 reply(To, Msg) ->
   To ! {reply, Msg}.
 
-loop(State) -> loop(State).
+
+
+loop(State) ->
+  receive
+    {From, children} ->
+      reply(From, maps:get(children, State)),
+      loop(State);
+    Other ->
+      ?LOG({error, Other})
+  end.
 %%  ClientPid = State#state.client_pid,
 %%  ChildList = State#state.child_list,
 %%  receive
