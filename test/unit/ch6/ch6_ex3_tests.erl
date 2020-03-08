@@ -12,12 +12,14 @@
 -compile(nowarn_export_all).
 -include_lib("eunit/include/eunit.hrl").
 
+%% setup/cleanup for a permanent child tests
+
 start_perm_ok_setup() ->
   ?assertEqual(
     ok,
     ch6_ex3:start_link([{permanent, ch6_add_one, start, []}])
   ).
-stop_perm_ok_cleanup(_) ->
+stop_cleanup(_) ->
   ?assertEqual(
     ok,
     ch6_ex3:stop()
@@ -25,7 +27,7 @@ stop_perm_ok_cleanup(_) ->
 perm_ok_test_() ->
   {setup,
     fun start_perm_ok_setup/0,
-    fun stop_perm_ok_cleanup/1,
+    fun stop_cleanup/1,
     [
       fun start_perm_ok/0,
       fun restart_perm_ok/0,
@@ -76,6 +78,47 @@ start_child_ok() ->
   ?assertEqual(2, length(Children)),
   Restarts = 0,
   {_UniqueId, _Pid, {M,F,A}, Mode, Restarts} = hd(Children).
+
+
+%% setup/cleanup for a transient child tests
+
+start_transient_ok_setup() ->
+  ?assertEqual(
+    ok,
+    ch6_ex3:start_link([{transient, ch6_add_one, start, []}])
+  ).
+transient_child_test_() ->
+  {setup,
+    fun start_transient_ok_setup/0,
+    fun stop_cleanup/1,
+    [
+      fun start_transient_child_ok/0,
+      fun stop_child_if_transient_it_is_not_restarted/0
+    ]}.
+
+start_transient_child_ok() ->
+  Children = ch6_ex3:children(),
+
+  ?assertEqual(1, length(Children)),
+  Mode = transient,
+  M = ch6_add_one,
+  F = start,
+  A = [],
+  Restarts = 0,
+  {_UniqueId, _Pid, {M,F,A}, Mode, Restarts} = hd(Children).
+
+stop_child_if_transient_it_is_not_restarted() ->
+  Children = ch6_ex3:children(),
+  Mode = transient,
+  M = ch6_add_one,
+  F = start,
+  A = [],
+  Restarts = 0,
+  {UniqueId, _Pid, {M,F,A}, Mode, Restarts} = hd(Children),
+
+  ok = ch6_ex3:stop_child(UniqueId),
+
+  ?assertEqual(0, length(ch6_ex3:children())).
 
 
 %% individual tests

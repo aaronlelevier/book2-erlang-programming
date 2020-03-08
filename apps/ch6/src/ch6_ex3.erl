@@ -36,7 +36,11 @@ children() -> call(children).
   F :: atom(),
   A :: atom()
 }) -> Id :: reference().
-start_child({Mode, M, F, A}) -> call({start_child, {Mode, M, F, A}}).
+start_child({Mode, M, F, A}) ->
+  call({start_child, {Mode, M, F, A}}).
+
+stop_child(UniqueId) ->
+  call({stop_child, UniqueId}).
 
 %% Private API
 
@@ -93,6 +97,10 @@ loop(State) ->
       {State2, UniqueId} = start_child(State, {Mode, M, F, A}),
       reply(From, UniqueId),
       loop(State2);
+    {From, {stop_child, UniqueId}} ->
+      State2 = stop_child(State, UniqueId),
+      reply(From, ok),
+      loop(State2);
     {From, stop} ->
       ?LOG(State),
       From ! {reply, terminate(State)};
@@ -128,6 +136,16 @@ start_child(State, {Mode, M, F, A}) ->
   NewChildren = [{UniqueId, Pid, {M, F, A}, Mode, 0} | Children],
   State2 = State#{children := NewChildren},
   {State2, UniqueId}.
+
+stop_child(State, UniqueId) ->
+  Children = maps:get(children, State),
+  % kill child process
+  {value, {UniqueId, Pid, _MFA, _Mode, _Restarts}} =
+    lists:keysearch(UniqueId, 1, Children),
+  exit(Pid, normal),
+  % remove from children list in state
+  Children2 = lists:keydelete(UniqueId, 1, Children),
+  State#{children := Children2}.
 
 terminate(State) ->
   ?LOG(State),
