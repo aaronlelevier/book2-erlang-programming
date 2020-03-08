@@ -30,6 +30,14 @@ start_link(ChildSpecList) ->
 
 children() -> call(children).
 
+-spec start_child({
+  Mode :: transient | permanent,
+  M :: atom(),
+  F :: atom(),
+  A :: atom()
+}) -> Id :: reference().
+start_child({Mode, M, F, A}) -> call({start_child, {Mode, M, F, A}}).
+
 %% Private API
 
 init(State) ->
@@ -81,6 +89,10 @@ loop(State) ->
     {From, children} ->
       reply(From, maps:get(children, State)),
       loop(State);
+    {From, {start_child, {Mode, M, F, A}}} ->
+      {State2, UniqueId} = start_child(State, {Mode, M, F, A}),
+      reply(From, UniqueId),
+      loop(State2);
     {From, stop} ->
       ?LOG(State),
       From ! {reply, terminate(State)};
@@ -108,6 +120,14 @@ restart_children(Pid, State) ->
         [{make_ref(), NewPid, {M, F, A}, Mode, Restarts + 1} | Children2]
     end,
   State#{children := NewChildren}.
+
+start_child(State, {Mode, M, F, A}) ->
+  {ok, Pid} = apply(M, F, A),
+  Children = maps:get(children, State),
+  UniqueId = make_ref(),
+  NewChildren = [{UniqueId, Pid, {M, F, A}, Mode, 0} | Children],
+  State2 = State#{children := NewChildren},
+  {State2, UniqueId}.
 
 terminate(State) ->
   ?LOG(State),

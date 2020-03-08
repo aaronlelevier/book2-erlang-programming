@@ -28,7 +28,8 @@ perm_ok_test_() ->
     fun stop_perm_ok_cleanup/1,
     [
       fun start_perm_ok/0,
-      fun restart_perm_ok/0
+      fun restart_perm_ok/0,
+      fun start_child_ok/0
     ]}.
 
 start_perm_ok() ->
@@ -57,6 +58,25 @@ restart_perm_ok() ->
   Restarts2 = 1,
   {_UniqueId2, Pid2, {M,F,A}, Mode, Restarts2} = hd(Children2),
   ?assert(is_pid(Pid2)).
+
+start_child_ok() ->
+  M = ch6_add_one2,
+  F = start,
+  A = [],
+  Mode = transient,
+  % pre-test
+  Children0 = ch6_ex3:children(),
+  ?assertEqual(1, length(Children0)),
+
+  Ret = ch6_ex3:start_child({Mode, M, F, A}),
+
+  ?assert(is_reference(Ret)),
+  % inspect children to confirm child was started
+  Children = ch6_ex3:children(),
+  ?assertEqual(2, length(Children)),
+  Restarts = 0,
+  {_UniqueId, _Pid, {M,F,A}, Mode, Restarts} = hd(Children).
+
 
 %% individual tests
 
