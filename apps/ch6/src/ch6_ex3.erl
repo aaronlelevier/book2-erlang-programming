@@ -119,14 +119,8 @@ restart_children(Pid, State) ->
   % remove from `children` list
   Children2 = lists:keydelete(Pid, 2, Children),
   % restart if Mode = permanent
-  NewChildren =
-    case Mode of
-      transient ->
-        Children2;
-      permanent ->
-        {ok, NewPid} = apply(M, F, A),
-        [{make_ref(), NewPid, {M, F, A}, Mode, Restarts + 1} | Children2]
-    end,
+  NewChildren = maybe_restart_child(
+    {M, F, A}, Mode, Restarts, Children2),
   State#{children := NewChildren}.
 
 start_child(State, {Mode, M, F, A}) ->
@@ -140,12 +134,27 @@ start_child(State, {Mode, M, F, A}) ->
 stop_child(State, UniqueId) ->
   Children = maps:get(children, State),
   % kill child process
-  {value, {UniqueId, Pid, _MFA, _Mode, _Restarts}} =
+  {value, {UniqueId, Pid, {M, F, A}, Mode, Restarts}} =
     lists:keysearch(UniqueId, 1, Children),
   exit(Pid, normal),
   % remove from children list in state
   Children2 = lists:keydelete(UniqueId, 1, Children),
-  State#{children := Children2}.
+  % check the mode if the child  should be restarted
+  NewChildren = maybe_restart_child(
+    {M, F, A}, Mode, Restarts, Children2),
+  State#{children := NewChildren}.
+
+maybe_restart_child({M, F, A}, Mode, Restarts, Children) ->
+  NewChildren =
+    case Mode of
+      transient ->
+        Children;
+      permanent ->
+        {ok, NewPid} = apply(M, F, A),
+        [{make_ref(), NewPid, {M, F, A}, Mode, Restarts + 1} | Children]
+
+    end,
+  NewChildren.
 
 terminate(State) ->
   ?LOG(State),

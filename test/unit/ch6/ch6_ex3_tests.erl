@@ -79,6 +79,34 @@ start_child_ok() ->
   Restarts = 0,
   {_UniqueId, _Pid, {M,F,A}, Mode, Restarts} = hd(Children).
 
+%% setup/cleanup for a permanent child stop_child tests
+
+stop_child_perm_ok_test_() ->
+  {setup,
+    fun start_perm_ok_setup/0,
+    fun stop_cleanup/1,
+    [
+      fun stop_child_will_restart_child_if_permanent/0
+      ]}.
+stop_child_will_restart_child_if_permanent() ->
+  M = ch6_add_one,
+  F = start,
+  A = [],
+  Children = ch6_ex3:children(),
+
+  ?assertEqual(1, length(Children)),
+
+  {UniqueId, Pid, {M,F,A}, permanent, 0} = hd(Children),
+
+  ok = ch6_ex3:stop_child(UniqueId),
+
+  % child is restarted under a new UniqueId and Pid
+  % restarts is incremented +1
+  Children2 = ch6_ex3:children(),
+  ?assertEqual(1, length(Children2)),
+  {UniqueId2, Pid2, {M,F,A}, permanent, 1} = hd(Children2),
+  ?assertNotEqual(UniqueId, UniqueId2),
+  ?assertNotEqual(Pid, Pid2).
 
 %% setup/cleanup for a transient child tests
 
@@ -119,7 +147,6 @@ stop_child_if_transient_it_is_not_restarted() ->
   ok = ch6_ex3:stop_child(UniqueId),
 
   ?assertEqual(0, length(ch6_ex3:children())).
-
 
 %% individual tests
 
