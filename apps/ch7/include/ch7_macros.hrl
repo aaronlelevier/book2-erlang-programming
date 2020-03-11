@@ -1,0 +1,1 @@
+-define(MULTIPLE(X, Y), X rem Y =:= 0).
