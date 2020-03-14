@@ -17,18 +17,15 @@
 -export([sum/1]).
 
 -record(btree, {nodes = []}).
--record(root, {id, value, children = []}).
--record(node, {id, parent, value, children = []}).
+-record(node, {id, is_root = false, parent, value, children = []}).
 
-%% btree - is a collection of nodes
+%% constructors
 
 btree(Nodes) ->
   #btree{nodes = Nodes}.
 
-%% node types
-
 root(Value) ->
-  #root{id = make_ref(), value = Value}.
+  #node{id = make_ref(), is_root = true, value = Value}.
 
 node(Value) ->
   #node{id = make_ref(), value = Value}.
@@ -40,11 +37,41 @@ sum(Btree) -> 0.
 %% tree construction functions
 
 add_child(Parent, Child) ->
-  Parent2 = Parent#node{children = [Child]},
-  Child2 = Child#node{parent = Parent},
+  Children = lists:reverse([Child | Parent#node.children]),
+
+  % enforce Child to add to Parent's children can't be the Root node
+  if
+    Child#node.is_root =:= true ->
+      throw({error, root_cant_have_a_parent});
+    true ->
+      void
+  end,
+
+  % enforce 2 children max rule
+  if
+    length(Children) > 2 ->
+      throw({error, two_children_max});
+    true ->
+      void
+  end,
+
+  Parent2 = Parent#node{children = Children},
+
+  % enforce can't set parent more than once
+  Child2 = case Child#node.parent of
+             undefined ->
+               Child#node{parent = Parent};
+             _ExistingParent ->
+               throw({error, existing_parent})
+           end,
+  %%  Child2 = Child#node{parent = Parent},
   {Parent2, Child2}.
 
+%% node data accessor functions
+
 id(#node{id = Id}) -> Id.
+
+is_root(#node{is_root = IsRoot}) -> IsRoot.
 
 parent(#node{parent = undefined}) -> undefined;
 parent(#node{parent = Parent}) -> Parent#node.id.
