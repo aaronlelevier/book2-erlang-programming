@@ -21,6 +21,7 @@
 
 %% constructors
 
+%% todo: assert there can only be 1 root node in the btree
 btree(Nodes) ->
   #btree{nodes = Nodes}.
 
@@ -67,11 +68,18 @@ add_child(Parent, Child) ->
   %%  Child2 = Child#node{parent = Parent},
   {Parent2, Child2}.
 
+find(#btree{nodes = Nodes}, root) ->
+  hd(lists:filter(fun(#node{is_root = IsRoot}) -> IsRoot =:= true end, Nodes));
+find(#btree{nodes = Nodes}, Id) ->
+  hd(lists:filter(fun(#node{id = NodeId}) -> NodeId =:= Id end, Nodes)).
+
 %% node data accessor functions
 
 id(#node{id = Id}) -> Id.
 
 is_root(#node{is_root = IsRoot}) -> IsRoot.
+
+value(#node{value = Value}) -> Value.
 
 parent(#node{parent = undefined}) -> undefined;
 parent(#node{parent = Parent}) -> Parent#node.id.
