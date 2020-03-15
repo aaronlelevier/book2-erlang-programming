@@ -8,8 +8,8 @@
 %%%-------------------------------------------------------------------
 -module(ch7_ex5).
 -author("aaron lelevier").
-
 -compile(export_all).
+-include_lib("book2/include/macros.hrl").
 
 %% constructors
 -export([btree/1, root/1]).
@@ -33,7 +33,35 @@ node(Value) ->
 
 %% tree traversal functions
 
-sum(Btree) -> 0.
+%% @doc sum all values using the Nodes list
+sum([]) -> 0;
+sum([H | T]) -> H#node.value + sum(T);
+sum(Btree) when is_record(Btree, btree) -> sum(Btree#btree.nodes).
+
+%% @doc sum all values by starting at the Root and traversing the tree
+sum2([]) -> 0;
+sum2([H | T]) -> sum2(H) + sum2(T);
+sum2(Node) when is_record(Node, node) ->
+  Node#node.value + sum2(Node#node.children).
+
+%% @doc finds the max by traversing the Nodes list
+max0(Btree) -> max0(Btree#btree.nodes, 0).
+max0([], Max) -> Max;
+max0([H | T], Max) ->
+  Max2 = if
+           H#node.value > Max ->
+             H#node.value;
+           true -> Max
+         end,
+  max0(T, Max2).
+
+%% @doc finds the max by starting at the Root and traversing the tree
+max1(Node) -> max1(Node, 0).
+max1([], Max) -> Max;
+max1([H|T], Max) -> max1(T, max1(H, Max));
+max1(Node, Max) when is_record(Node, node) ->
+  Max2 = max(Node#node.value, Max),
+  max1(Node#node.children, Max2).
 
 %% tree construction functions
 
