@@ -58,10 +58,35 @@ max0([H | T], Max) ->
 %% @doc finds the max by starting at the Root and traversing the tree
 max1(Node) -> max1(Node, 0).
 max1([], Max) -> Max;
-max1([H|T], Max) -> max1(T, max1(H, Max));
+max1([H | T], Max) -> max1(T, max1(H, Max));
 max1(Node, Max) when is_record(Node, node) ->
   Max2 = max(Node#node.value, Max),
   max1(Node#node.children, Max2).
+
+%% check if tree is ordered
+is_ordered(Btree) ->
+  Root = find(Btree, root),
+  is_ordered(Root, true).
+
+is_ordered([], Ret) -> Ret;
+is_ordered([H|T], Ret) -> is_ordered(T, is_ordered(H, Ret));
+is_ordered(Node, Ret) when is_record(Node, node) ->
+  Ret2 = if
+           length(Node#node.children) =:= 2 ->
+             [A, B] = Node#node.children,
+             ?LOG({A#node.value, B#node.value}),
+             A#node.value < B#node.value;
+           true ->
+             Ret
+         end,
+  % now exit if we find the tree isn't ordered, or else continue
+  % to recurse the tree
+  case Ret2 of
+    false ->
+      false;
+    true ->
+      is_ordered(Node#node.children, Ret2)
+  end.
 
 %% tree construction functions
 

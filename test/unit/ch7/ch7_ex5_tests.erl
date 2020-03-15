@@ -74,16 +74,21 @@ root_cant_have_a_parent_test() ->
     ch7_ex5:add_child(Parent, Root)
   ).
 
+%% default unordered btree used by most tests
 make_btree() ->
-  Root = ch7_ex5:root(3),
+  make_btree([3, 4, 2, 1, 7]).
+
+%% btree creator for tests
+make_btree([A, B, C, D, E]) ->
+  Root = ch7_ex5:root(A),
 
   % first level children
-  Child1A = ch7_ex5:node(4),
-  Child1B = ch7_ex5:node(2),
+  Child1A = ch7_ex5:node(B),
+  Child1B = ch7_ex5:node(C),
 
   % 2nd level children of Child1A
-  Child2A = ch7_ex5:node(1),
-  Child2B = ch7_ex5:node(7),
+  Child2A = ch7_ex5:node(D),
+  Child2B = ch7_ex5:node(E),
 
   % set Child1A's children
   {Child1A_2, Child2A2} = ch7_ex5:add_child(Child1A, Child2A),
@@ -147,3 +152,13 @@ max1_using_the_nodes_list_test() ->
   ?assert(ch7_ex5:is_root(Root)),
   Ret = ch7_ex5:max1(Root),
   ?assertEqual(7, Ret).
+
+is_ordered_false_test() ->
+  Btree = make_btree(),
+  Ret = ch7_ex5:is_ordered(Btree),
+  ?assertEqual(false, Ret).
+
+is_ordered_true_test() ->
+  Btree = make_btree([5, 4, 6, 2, 3]),
+  Ret = ch7_ex5:is_ordered(Btree),
+  ?assertEqual(true, Ret).
