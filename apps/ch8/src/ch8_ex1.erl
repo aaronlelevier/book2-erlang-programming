@@ -56,7 +56,6 @@ reply(To, Msg) -> To ! {?SERVER, Msg}.
 loop(State) ->
   receive
     {From, convert} ->
-      CrudMod = maps:get(crud_module, State),
       Data = maps:get(state, State),
       State2 = #{
         state => convert_list_to_map(Data),
