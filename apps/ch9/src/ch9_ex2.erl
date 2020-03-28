@@ -10,7 +10,7 @@
 -vsn(1.0).
 -export([
   divisible_by/2, integers_squared/1, intersection/2,
-  symmetric_diff/2, zip/2, zipWith/3]).
+  symmetric_diff/2]).
 
 divisible_by(N, L) -> [X || X <- L, X rem N =:= 0].
 
@@ -24,12 +24,3 @@ symmetric_diff(L1, L2) ->
     [X || X <- L1, not lists:member(X, L2)],
     [Y || Y <- L2, not lists:member(Y, L1)]
   ).
-
-zip(L1, L2) ->
-  [{lists:nth(N, L1), lists:nth(N, L2)} || N <- lists:seq(1, length(L1))].
-
-zipWith(Fun, L1, L2) ->
-  [
-    Fun(lists:nth(N, L1), lists:nth(N, L2))
-    || N <- lists:seq(1, length(L1))
-  ].

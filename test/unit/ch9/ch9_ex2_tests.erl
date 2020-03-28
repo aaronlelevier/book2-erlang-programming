@@ -41,19 +41,3 @@ symmetric_diff_test() ->
 
   ?assertEqual([1, 2, 3, 6, 7, 8], Ret).
 
-zip_test() ->
-  L1 = [1, 2],
-  L2 = [3, 4, 5],
-
-  Ret = ch9_ex2:zip(L1, L2),
-
-  ?assertEqual([{1, 3}, {2, 4}], Ret).
-
-zipWith_test() ->
-  Add = fun(X, Y) -> X + Y end,
-  L1 = [1, 2],
-  L2 = [3, 4, 5],
-
-  Ret = ch9_ex2:zipWith(Add, L1, L2),
-
-  ?assertEqual([4, 6], Ret).
