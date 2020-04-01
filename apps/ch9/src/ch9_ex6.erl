@@ -22,7 +22,7 @@ deserialize([_ | Ls]) -> listToTree(Ls).
 
 listToTree([2, N]) -> {leaf, N};
 listToTree([N]) -> {leaf, N};
-listToTree([M | Rest] = Code) ->
+listToTree([M | Rest]) ->
   {Code1, Code2} = lists:split(M - 1, Rest),
   {node,
     listToTree(Code1),
