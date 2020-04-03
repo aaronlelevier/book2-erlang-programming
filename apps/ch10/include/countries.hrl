@@ -1,0 +1,1 @@
+-record(capital, {name, country, pop}).
