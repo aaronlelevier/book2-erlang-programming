@@ -9,6 +9,7 @@
 -module(ch7_records).
 -author("aaron lelevier").
 -compile(export_all).
+-compile(nowarn_export_all).
 -export([]).
 
 -record(person, {name, age, phone}).

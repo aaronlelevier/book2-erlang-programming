@@ -9,6 +9,7 @@
 -module(ch6_frequency_test).
 -author("aaron lelevier").
 -compile(export_all).
+-compile(nowarn_export_all).
 
 -include_lib("eunit/include/eunit.hrl").
 

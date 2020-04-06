@@ -8,7 +8,6 @@
 %%%-------------------------------------------------------------------
 -module(ch7_ex1_tests).
 -author("aaron lelevier").
--compile(export_all).
 
 -include_lib("eunit/include/eunit.hrl").
 
