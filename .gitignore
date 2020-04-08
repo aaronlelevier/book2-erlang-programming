@@ -21,3 +21,4 @@ Mnesia.*
 .DS_Store
 *.log
 *.ets
+*.dets
