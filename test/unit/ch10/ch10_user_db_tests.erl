@@ -29,3 +29,5 @@ create_and_close_tables_test() ->
   ?assertEqual(undefined, ets:info(usrRam)),
   ?assertEqual(undefined, ets:info(usrIndex)),
   ?assertEqual(undefined, dets:info(usrDisk)).
+
+

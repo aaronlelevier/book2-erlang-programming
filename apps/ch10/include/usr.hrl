@@ -5,7 +5,7 @@
 %% https://erlang.org/doc/reference_manual/typespec.html#type-information-in-record-declarations
 
 -record(usr, {
-  msidn :: integer(),
+  msisdn :: integer(),
   id ::integer(),
   status = enabled :: {enabled | disabled},
   plan :: {postpay | prepay},
