@@ -12,7 +12,7 @@
   create_tables/1, close_tables/0, restore_tables/0,
   add_usr/1, update_usr/1,
   lookup_id/1, lookup_msisdn/1, get_index/1,
-  delete_disabled/0, delete_usr/2]).
+  delete_disabled/0, delete_usr/1, delete_usr/2]).
 
 -include("usr.hrl").
 
@@ -85,6 +85,10 @@ loop_delete_disabled(PhoneNo) ->
       ok
   end,
   loop_delete_disabled(ets:next(usrRam, PhoneNo)).
+
+delete_usr(CustId) ->
+  {ok, PhoneNo} = get_index(CustId),
+  delete_usr(PhoneNo, CustId).
 
 delete_usr(PhoneNo, CustId) ->
   true = ets:delete(usrRam, PhoneNo),
