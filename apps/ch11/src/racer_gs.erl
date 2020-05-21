@@ -1,102 +1,67 @@
 %%%-------------------------------------------------------------------
 %%% @author aaron lelevier
-%%% @doc This module represents a Racer.
-%%% It's implementing the gen_server behavior.
-%%%
-%%% The Racer should have a Status of: pre_start, racing, finished,
-%%% time_exceeded, dnf
+%%% @doc
 %%% @end
-%%%--------------------------------------------------------------------
+%%%-------------------------------------------------------------------
 -module(racer_gs).
+
 -behaviour(gen_server).
 
--include_lib("book2/include/macros.hrl").
-
--export([start_link/1]).
 %% API
--export([start_race/1, finish_race/1, status/1, state/1]).
+-export([start_link/1, update_location/2, get_location/1, get_progress/1]).
+
 %% gen_server
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2,
   code_change/3]).
 
-%%%===================================================================
-%%% Type specs
-%%%===================================================================
+-define(SERVER, ?MODULE).
 
 -type lat() :: float().
 -type lng() :: float().
 -type point() :: {lat(), lng()}.
 
-%%%===================================================================
-%%% Macros
-%%%===================================================================
+%% async update location
+-spec update_location(Name :: atom(), Point :: point()) -> ok.
+update_location(Name, Point) ->
+  gen_server:cast(Name, {update_location, Point}).
 
--define(INIT_STATE, #{
-  status => pre_start,
-  points => [],
-  duration => 1000
+%% sync get location - last point update
+-spec get_location(Name :: atom()) -> {location, point()}.
+get_location(Name) ->
+  gen_server:call(Name, get_location).
 
-}).
-
-%%%===================================================================
-%%% API
-%%%===================================================================
-
-start_race(Name) ->
-  gen_server:call(Name, start_race).
-
-status(Name) ->
-  maps:get(status, state(Name)).
-
-state(Name) ->
-  gen_server:call(Name, status).
-
-finish_race(Name) ->
-  gen_server:call(Name, finish).
+%% sync get progress - which is the count of location points recorded
+-spec get_progress(Name:: atom()) -> {progress, integer()}.
+get_progress(Name) ->
+  gen_server:call(Name, get_progress).
 
 %%%===================================================================
 %%% Spawning and gen_server implementation
 %%%===================================================================
 
 start_link(Name) ->
-  gen_server:start_link({local, Name}, ?MODULE, ?INIT_STATE, []).
+  gen_server:start_link({local, Name}, ?MODULE, [], []).
 
-init(State) ->
-  {ok, State}.
+init([]) ->
+  {ok, #{points => []}}.
 
-%% start_race
-handle_call(start_race, _From, #{status := pre_start} = State) ->
-  NewState = State#{status => racing},
-  timer:send_after(maps:get(duration, ?INIT_STATE), race_duration_end),
-  {reply, ok, NewState};
-handle_call(start_race, _From, #{status := Status} = State) ->
-  Msg = lists:flatten(
-    io_lib:format("Error: can only start race from pre_start status. Status: ~s", [Status])),
-  {reply, {error, Msg}, State};
+handle_call(get_location, _From, State) ->
+  [H|_T] = maps:get(points, State),
+  {reply, {location, H}, State};
+handle_call(get_progress, _From, State) ->
+  L = maps:get(points, State),
+  {reply, {progress, length(L)}, State};
+handle_call(_Request, _From, State) ->
+  {reply, ok, State}.
 
-%% finish_race
-handle_call(finish, _From, #{status := racing} = State) ->
-  NewState = State#{status => finished},
-  {reply, ok, NewState};
-handle_call(start_race, _From, #{status := Status} = State) ->
-  Msg = lists:flatten(
-    io_lib:format("Error: can't finish if not racing status. Status: ~s", [Status])),
-  {reply, {error, Msg}, State};
-
-%% status
-handle_call(status, _From, State) ->
-  Reply = State,
-  {reply, Reply, State}.
+handle_cast({update_location, Point}, State) ->
+  L = maps:get(points, State),
+  {noreply, State#{points := [Point|L]}};
 
 handle_cast(_Request, State) ->
   {noreply, State}.
 
-%% handle "end of race" message
-handle_info(race_duration_end, #{status := racing} = State) ->
-  ?LOG({race_duration_end, State}),
-  {noreply, State#{status := time_exceeded}};
-handle_info(Info, State) ->
-  ?LOG({Info, State}),
+handle_info(_Info, State) ->
   {noreply, State}.
 
 terminate(_Reason, _State) ->
