@@ -12,13 +12,12 @@
 
 
 can_update_and_get_location_test() ->
-  Name = john,
-  {ok, _Pid} = racer_gs:start_link(Name),
+  {ok, Pid} = racer_gs:start_link(),
 
-  ?assertEqual(ok, racer_gs:update_location(Name, {1, 2})),
-  ?assertEqual({location, {1, 2}}, racer_gs:get_location(Name)),
-  ?assertEqual({progress, 1}, racer_gs:get_progress(Name)),
+  ?assertEqual(ok, racer_gs:update_location(Pid, {1, 2})),
+  ?assertEqual({location, {1, 2}}, racer_gs:get_location(Pid)),
+  ?assertEqual({progress, 1}, racer_gs:get_progress(Pid)),
 
-  ?assertEqual(ok, racer_gs:update_location(Name, {4, 5})),
-  ?assertEqual({location, {4, 5}}, racer_gs:get_location(Name)),
-  ?assertEqual({progress, 2}, racer_gs:get_progress(Name)).
+  ?assertEqual(ok, racer_gs:update_location(Pid, {4, 5})),
+  ?assertEqual({location, {4, 5}}, racer_gs:get_location(Pid)),
+  ?assertEqual({progress, 2}, racer_gs:get_progress(Pid)).
