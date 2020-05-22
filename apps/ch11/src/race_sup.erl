@@ -39,7 +39,7 @@ add_racer(Id) ->
 %% @doc start with 1 Racer, the 'champion'
 init([]) ->
   SupFlags = #{strategy => one_for_one,
-    intensity => 0,
+    intensity => 1,
     period => 1},
   Child = #{
     id => champion,
@@ -52,4 +52,7 @@ init([]) ->
   ChildSpecs = [Child],
   {ok, {SupFlags, ChildSpecs}}.
 
-%% internal functions
+%%%===================================================================
+%%% Internal API
+%%%===================================================================
+
