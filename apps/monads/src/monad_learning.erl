@@ -8,8 +8,9 @@
 -module(monads_learning).
 -author("Aaron Lelevier").
 -vsn(1.0).
--export([is_integers/1, do_identity/1, rand_int/0]).
+-export([is_integers/1, do_identity/1, rand_int/0, if_safe_div_zero/3]).
 -compile({parse_transform, do}).
+
 
 %% @doc checks a list if each item is an integer and returns a list of booleans
 -spec is_integers(L :: [any()]) -> [boolean()].
@@ -17,8 +18,7 @@ is_integers([H | T]) ->
   [is_integer(H) | is_integers(T)];
 is_integers([]) -> [].
 
-%% @doc examples of using an identity monad
-%% https://github.com/rabbitmq/erlando#the-inevitable-monad-tutorial
+%% Identity Monad
 
 do_identity(X) ->
   do([identity_m ||
@@ -31,3 +31,13 @@ rand_int() ->
     X2 <- X*100000,
     X3 <- trunc(X2),
     abs(X3)]).
+
+%% Maybe Monad
+
+if_safe_div_zero(X, Y, Fun) ->
+  do([maybe_m ||
+    Result <- case Y == 0 of
+                true  -> fail("Cannot divide by zero");
+                false -> return(X / Y)
+              end,
+    return(Fun(Result))]).
