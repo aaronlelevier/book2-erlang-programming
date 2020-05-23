@@ -5,11 +5,11 @@
   {mod, {monads_app, []}},
   {applications,
    [kernel,
-    stdlib
+    stdlib,
+    erlando
    ]},
   {env,[]},
   {modules, []},
-
   {licenses, ["Apache 2.0"]},
   {links, []}
  ]}.
