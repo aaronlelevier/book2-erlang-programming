@@ -42,7 +42,7 @@ maybe(Arg) ->
         || monad_plus:guard(maybe_m, is_number(Arg)),
            return(Arg*Arg)]).
 
-test_fib() ->
+skip_test_fib() ->
     true = lists:all(fun ({X, Y}) -> X =:= Y end,
                      [{fib_m(N), fib_rec(N)} || N <- lists:seq(0, 20)]).
 
@@ -91,7 +91,7 @@ test_omega() ->
     true = A =/= B,
     true = A =:= lists:usort(B).
 
-test_error_t_list() ->
+skip_test_error_t_list() ->
     M = error_t:new(list_m),
     R = M:run(do([M || E1 <- M:lift([1, 2, 3]),
                        E2 <- M:lift([4, 5, 6]),
