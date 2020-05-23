@@ -6,7 +6,8 @@
   {applications,
    [kernel,
     stdlib,
-    erlando
+    erlando,
+    book2
    ]},
   {env,[]},
   {modules, []},
