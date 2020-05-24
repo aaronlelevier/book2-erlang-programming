@@ -17,6 +17,7 @@
 
 -module(test_do).
 -compile({parse_transform, do}).
+-compile({parse_transform, pmod_pt}).
 
 -compile(export_all).
 
@@ -48,10 +49,10 @@ skip_test_fib() ->
 
 %% Classic monadic implementation of fibonnaci
 fib_m(N) ->
-    StateT = state_t:new(identity_m),
+    StateT = (state_t:new(identity_m)),
     {_, R} = StateT:exec(
-               monad:sequence(StateT,
-                              lists:duplicate(N, fib_m_step(StateT))), {0, 1}),
+      monad:sequence(StateT,
+        lists:duplicate(N, fib_m_step(StateT)))),
     R.
 
 fib_m_step(StateT) -> StateT:modify(fun ({X, Y}) -> {Y, X+Y} end).

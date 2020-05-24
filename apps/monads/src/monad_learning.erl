@@ -8,10 +8,11 @@
 -module(monad_learning).
 -author("Aaron Lelevier").
 -vsn(1.0).
--export([is_integers/1, do_identity/1, rand_int/0, if_safe_div_zero/3,
-  if_unsafe_div_zero/2, log/1]).
 -compile({parse_transform, do}).
 -include_lib("book2/include/macros.hrl").
+
+-export([is_integers/1, do_identity/1, rand_int/0, if_safe_div_zero/3,
+  if_unsafe_div_zero/2, log/1, add_one/0]).
 
 %% @doc checks a list if each item is an integer and returns a list of booleans
 -spec is_integers(L :: [any()]) -> [boolean()].
@@ -47,7 +48,6 @@ if_safe_div_zero(X, Y, Fun) ->
     % apply Fun and return
     return(Fun(Result))]).
 
-
 %% won't hit the false clause if Y == 0, but maybe the above is better
 %% because it allows prettier chaining
 if_unsafe_div_zero(X, Y) ->
@@ -56,8 +56,11 @@ if_unsafe_div_zero(X, Y) ->
     false -> X / Y
   end.
 
-
 %% Utility Functions
+
 log(X) ->
   ?LOG(X),
   X.
+
+add_one() ->
+  fun(X) -> ?LOG(X), X + 1 end.
