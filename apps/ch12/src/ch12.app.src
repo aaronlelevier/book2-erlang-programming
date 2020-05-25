@@ -1,0 +1,16 @@
+{application, ch12,
+ [{description, "An OTP application"},
+  {vsn, "0.1.0"},
+  {registered, [ch12_usr_db]},
+  {mod, {ch12_app, []}},
+  {applications,
+   [kernel,
+    stdlib,
+    book2
+   ]},
+  {env,[]},
+  {modules, []},
+
+  {licenses, ["Apache 2.0"]},
+  {links, []}
+ ]}.
