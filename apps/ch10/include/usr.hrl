@@ -8,6 +8,6 @@
   msisdn :: integer(),
   id ::integer(),
   status = enabled :: {enabled | disabled},
-  plan :: {postpay | prepay},
-  services = [] :: [{data | sms | lbs}]
+  plan = postpay :: {postpay | prepay},
+  services = [data] :: [{data | sms | lbs}]
 }).
