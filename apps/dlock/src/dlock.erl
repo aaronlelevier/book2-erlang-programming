@@ -35,7 +35,7 @@ release(Items, Callback) ->
 
 %% Helpers
 build_request(Items, Callback, Timeout) ->
-  #dlock_request{
+  #request{
     created = calendar:local_time(),
     callback = Callback,
     timeout = Timeout,

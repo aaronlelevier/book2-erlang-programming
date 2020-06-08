@@ -2,7 +2,7 @@
 %% https://erlang.org/doc/reference_manual/typespec.html#type-information-in-record-declarations
 
 %% @doc a client request sent to the "dlock" server
--record(dlock_request, {
+-record(request, {
   created,
   callback,
   timeout = 1000,
