@@ -59,22 +59,13 @@ acquire(Request) ->
 %% Table maintenance functions
 
 create_tables() ->
-  {atomic, ok} = mnesia:create_table(
-    item, [{attributes, record_info(fields, item)}, {disc_copies, [node()]}]),
-  {atomic, ok} = mnesia:create_table(
-    lock, [{attributes, record_info(fields, lock)}, {disc_copies, [node()]}]),
-  {atomic, ok} = mnesia:create_table(
-    queue, [{attributes, record_info(fields, queue)}, {disc_copies, [node()]}]).
+  gen_server:call(?SERVER, {tables, create}).
 
 delete_tables() ->
-  {atomic, ok} = mnesia:delete_table(item),
-  {atomic, ok} = mnesia:delete_table(lock),
-  {atomic, ok} = mnesia:delete_table(queue).
+  gen_server:call(?SERVER, {tables, delete}).
 
 restore_tables() ->
-  delete_tables(),
-  create_tables().
-
+  gen_server:call(?SERVER, {tables, restore}).
 
 %% Table CRUD functions
 
@@ -87,8 +78,8 @@ insert(Request = #request{}) -> Request.
 init([]) ->
   {ok, #{}}.
 
-handle_call(_Request, _From, State) ->
-  {reply, ok, State}.
+handle_call({tables, Action}, _From, State) ->
+  {reply, tables(Action), State}.
 
 handle_cast(_Request, State) ->
   {noreply, State}.
@@ -106,3 +97,20 @@ code_change(_OldVsn, State, _Extra) ->
 %%%===================================================================
 %%% Internal functions
 %%%===================================================================
+
+tables(create) ->
+  {atomic, ok} = mnesia:create_table(
+    item, [{attributes, record_info(fields, item)}, {disc_copies, [node()]}]),
+  {atomic, ok} = mnesia:create_table(
+    lock, [{attributes, record_info(fields, lock)}, {disc_copies, [node()]}]),
+  {atomic, ok} = mnesia:create_table(
+    queue, [{attributes, record_info(fields, queue)}, {disc_copies, [node()]}]);
+
+tables(delete) ->
+  {atomic, ok} = mnesia:delete_table(item),
+  {atomic, ok} = mnesia:delete_table(lock),
+  {atomic, ok} = mnesia:delete_table(queue);
+
+tables(restore) ->
+  {atomic, ok} = tables(delete),
+  {atomic, ok} = tables(create).
