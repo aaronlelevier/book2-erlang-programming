@@ -8,34 +8,37 @@
 -module(ch15_tcp).
 -author("Aaron Lelevier").
 -vsn(1.0).
--export([]).
--compile(export_all).
+-export([client/2, server/0, wait_connect/2]).
+
+%% Macros
+-define(LISTEN_PORT, 1234).
 
 %%%===================================================================
-%%% Client
+%%% API
 %%%===================================================================
 client(Host, Data) ->
-  {ok, Socket} = gen_tcp:connect(Host, 1234, [binary, {packet, 0}]),
+  {ok, Socket} = gen_tcp:connect(Host, ?LISTEN_PORT, [binary, {packet, 0}]),
   send(Socket, Data),
   ok = gen_tcp:close(Socket).
 
-send(Socket, <<Chunk:100/binary, Rest/binary>>) ->
-  gen_tcp:send(Socket, Chunk),
-  send(Socket, Rest);
-send(Socket, <<Rest/binary>>) ->
-  gen_tcp:send(Socket, Rest).
-
-%%%===================================================================
-%%% Server
-%%%===================================================================
 server() ->
-  {ok, ListenSocket} = gen_tcp:listen(1234, [binary, {active, false}]),
-  wait_connect(ListenSocket, 0).
+  {ok, ListenSocket} = gen_tcp:listen(?LISTEN_PORT, [binary, {active, false}]),
+  spawn(?MODULE, wait_connect, [ListenSocket, 0]),
+  ok.
 
 wait_connect(ListenSocket, Count) ->
   {ok, Socket} = gen_tcp:accept(ListenSocket),
   spawn(?MODULE, wait_connect, [ListenSocket, Count+1]),
   get_request(Socket, [], Count).
+
+%%%===================================================================
+%%% Internal functions
+%%%===================================================================
+send(Socket, <<Chunk:100/binary, Rest/binary>>) ->
+  gen_tcp:send(Socket, Chunk),
+  send(Socket, Rest);
+send(Socket, <<Rest/binary>>) ->
+  gen_tcp:send(Socket, Rest).
 
 get_request(Socket, BinaryList, Count) ->
   case gen_tcp:recv(Socket, 0, 5000) of
